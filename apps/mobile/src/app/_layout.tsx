@@ -75,6 +75,10 @@ function RootNavigator() {
           <Stack.Screen name="login" options={{ presentation: 'card' }} />
           <Stack.Screen name="register" options={{ presentation: 'card' }} />
         </Stack.Protected>
+        {/* Legal pages are public: visitors must be able to read them before signing up. */}
+        <Stack.Screen name="privatliv" options={{ presentation: 'card' }} />
+        <Stack.Screen name="cookies" options={{ presentation: 'card' }} />
+        <Stack.Screen name="vilkaar" options={{ presentation: 'card' }} />
       </Stack>
     </SavedProvider></LocationProvider>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, View } from 'react-native';
 
 import { ContactActions } from '@/components/contact-actions';
+import { OsmAttribution } from '@/components/legal/osm-attribution';
 import { RatingBadge } from '@/components/rating-stars';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -110,6 +111,7 @@ export default function ProviderScreen() {
             </Text>
           </Button>
         </View>
+        <OsmAttribution />
       </ScrollView>
     </View>
   );

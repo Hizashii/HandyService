@@ -1,4 +1,4 @@
-import { Bell, BriefcaseBusiness, ChevronRight, LogOut, Moon, Settings2, Sun, UserRound } from 'lucide-react-native';
+import { Bell, BriefcaseBusiness, ChevronRight, Cookie, LogOut, Moon, ScrollText, Settings2, ShieldCheck, Sun, UserRound } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useUniwind, Uniwind } from 'uniwind';
 import { Pressable, View } from 'react-native';
@@ -42,6 +42,13 @@ export default function ProfileScreen() {
         <SettingsRow icon={theme === 'dark' ? Moon : Sun} title={theme === 'dark' ? 'Mørkt tema' : 'Lyst tema'} description="Skift appens udseende" onPress={() => Uniwind.setTheme(theme === 'dark' ? 'light' : 'dark')} />
         <SettingsRow icon={Bell} title="Notifikationer" description="Ikke tilgængeligt endnu" />
         <SettingsRow icon={Settings2} title="Kontoindstillinger" description="Flere indstillinger kommer snart" />
+      </View>
+
+      <View className="gap-2">
+        <Text className="text-xs font-bold uppercase tracking-[2px] text-text-secondary">Juridisk</Text>
+        <SettingsRow icon={ShieldCheck} title="Privatlivspolitik" description="Hvordan vi behandler dine oplysninger" onPress={() => router.push('/privatliv')} />
+        <SettingsRow icon={Cookie} title="Cookies" description="Vi bruger ingen cookies eller sporing" onPress={() => router.push('/cookies')} />
+        <SettingsRow icon={ScrollText} title="Vilkår og betingelser" description="Reglerne for at bruge Håndmatch" onPress={() => router.push('/vilkaar')} />
       </View>
 
       <Button variant="danger-soft" onPress={() => { void signOut().then(() => router.replace('/login')); }}><Icon as={LogOut} size={18} className="text-danger-soft-foreground" /><Button.Label>Log ud</Button.Label></Button>

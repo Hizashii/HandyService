@@ -16,10 +16,15 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<'customer' | 'provider'>('customer');
+  const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function submit() {
+    if (!accepted) {
+      setError('Du skal acceptere vilkårene og privatlivspolitikken for at oprette en konto.');
+      return;
+    }
     const parsed = registerFormSchema.safeParse({ email, password, role });
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message ?? 'Tjek dine oplysninger.');
@@ -54,6 +59,20 @@ export default function RegisterScreen() {
         </View>
       </View>
       <AuthError message={error && !error.toLowerCase().includes('mail') && !error.toLowerCase().includes('tegn') && !error.toLowerCase().includes('kode') ? error : authError} />
+      <Pressable
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: accepted }}
+        onPress={() => setAccepted((v) => !v)}
+        className="min-h-11 flex-row items-start gap-3 active:opacity-80">
+        <View className={`mt-0.5 h-6 w-6 items-center justify-center rounded-md border ${accepted ? 'border-brand bg-brand' : 'border-border bg-surface'}`}>
+          {accepted ? <Icon as={Check} size={14} className="text-accent-foreground" /> : null}
+        </View>
+        <Text className="flex-1 text-[13px] leading-5 text-text-secondary">
+          Jeg har læst og accepterer{' '}
+          <Text className="font-semibold text-brand underline" onPress={() => router.push('/vilkaar')}>vilkårene</Text> og{' '}
+          <Text className="font-semibold text-brand underline" onPress={() => router.push('/privatliv')}>privatlivspolitikken</Text>.
+        </Text>
+      </Pressable>
       <AuthButton label="Opret konto" loading={loading} onPress={() => void submit()} />
       <Link href="/login" asChild>
         <Pressable accessibilityRole="link" className="min-h-11 items-center justify-center">
