@@ -1,6 +1,12 @@
 const PASSWORD_ALGORITHM = 'PBKDF2';
 const PASSWORD_HASH = 'SHA-256';
-export const PASSWORD_ITERATIONS = 600_000;
+/**
+ * PBKDF2 rounds for new password hashes. 100,000 is the most the Cloudflare Workers runtime allows
+ * for PBKDF2 (higher counts throw, which made registration and login return 500 once deployed, even
+ * though local development accepts more). Existing hashes keep the count stored inside them, and
+ * verification still refuses anything below 100,000.
+ */
+export const PASSWORD_ITERATIONS = 100_000;
 const PASSWORD_KEY_LENGTH = 256;
 const PASSWORD_SALT_BYTES = 16;
 const SESSION_TOKEN_BYTES = 32;
