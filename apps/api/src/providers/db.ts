@@ -265,18 +265,24 @@ export async function contactCandidates(
     .map((id) => ({ id, website: found.get(id)! }))
 }
 
-/** Records what was found on a provider's website and when it was checked. Never touches OSM columns. */
+/**
+ * Records the outcome of reading a provider's website. A successful read replaces the stored values,
+ * so a contact the business has withdrawn disappears. A failed read keeps what we had (one outage must
+ * not erase good data) and retries in a day instead of waiting a month. Never touches OSM columns.
+ */
 export async function saveSiteContacts(
   db: D1Database,
   id: string,
-  found: { phone: string | null; email: string | null },
+  found: { phone: string | null; email: string | null; read: boolean },
   now: number
 ) {
-  await db
-    .prepare(
-      `UPDATE providers SET site_phone = COALESCE(?, site_phone), site_email = COALESCE(?, site_email),
-         contact_checked_at = ? WHERE id = ?`
-    )
-    .bind(found.phone, found.email, now, id)
-    .run()
+  if (found.read) {
+    await db
+      .prepare('UPDATE providers SET site_phone = ?, site_email = ?, contact_checked_at = ? WHERE id = ?')
+      .bind(found.phone, found.email, now, id)
+      .run()
+    return
+  }
+  const retryInOneDay = now - CONTACT_RECHECK_MS + 24 * 60 * 60 * 1000
+  await db.prepare('UPDATE providers SET contact_checked_at = ? WHERE id = ?').bind(retryInOneDay, id).run()
 }

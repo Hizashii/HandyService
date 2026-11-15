@@ -49,7 +49,7 @@ describe('extractContacts', () => {
     expect(extractContacts('<p>info&#64;vvs.dk</p>').email).toBe('info@vvs.dk')
   })
   it('returns nulls for a page with nothing', () => {
-    expect(extractContacts('<html><body>Hello</body></html>')).toEqual({ phone: null, email: null })
+    expect(extractContacts('<html><body>Hello</body></html>')).toMatchObject({ phone: null, email: null })
   })
 })
 
@@ -108,7 +108,7 @@ describe('fetchSiteContacts', () => {
 
   it('reads the homepage', async () => {
     const f = stub({ '/': () => html('<a href="tel:75123456">x</a><a href="mailto:a@byg.dk">y</a>') })
-    expect(await fetchSiteContacts('https://byg.dk/', f)).toEqual({ phone: '+4575123456', email: 'a@byg.dk' })
+    expect(await fetchSiteContacts('https://byg.dk/', f)).toMatchObject({ phone: '+4575123456', email: 'a@byg.dk' })
   })
 
   it('follows one contact page for what the homepage lacks', async () => {
@@ -116,7 +116,7 @@ describe('fetchSiteContacts', () => {
       '/': () => html('<a href="/kontakt">Kontakt</a><a href="mailto:a@byg.dk">y</a>'),
       '/kontakt': () => html('<p>Telefon: 75 12 34 56</p>'),
     })
-    expect(await fetchSiteContacts('https://byg.dk/', f)).toEqual({ phone: '+4575123456', email: 'a@byg.dk' })
+    expect(await fetchSiteContacts('https://byg.dk/', f)).toMatchObject({ phone: '+4575123456', email: 'a@byg.dk' })
   })
 
   it('respects a robots.txt that blocks everything', async () => {
@@ -124,7 +124,7 @@ describe('fetchSiteContacts', () => {
       '/robots.txt': () => new Response('User-agent: *\nDisallow: /'),
       '/': () => html('<a href="mailto:a@byg.dk">y</a>'),
     })
-    expect(await fetchSiteContacts('https://byg.dk/', f)).toEqual({ phone: null, email: null })
+    expect(await fetchSiteContacts('https://byg.dk/', f)).toMatchObject({ phone: null, email: null })
   })
 
   it('never fetches private addresses', async () => {
@@ -132,15 +132,16 @@ describe('fetchSiteContacts', () => {
     expect(await fetchSiteContacts('http://169.254.169.254/', spy as unknown as typeof fetch)).toEqual({
       phone: null,
       email: null,
+      read: false,
     })
     expect(spy).not.toHaveBeenCalled()
   })
 
   it('ignores non-HTML responses and survives network errors', async () => {
     const pdf = stub({ '/': () => new Response('a@b.dk', { headers: { 'content-type': 'application/pdf' } }) })
-    expect(await fetchSiteContacts('https://byg.dk/', pdf)).toEqual({ phone: null, email: null })
+    expect(await fetchSiteContacts('https://byg.dk/', pdf)).toMatchObject({ phone: null, email: null })
     const boom = (() => Promise.reject(new Error('network'))) as typeof fetch
-    expect(await fetchSiteContacts('https://byg.dk/', boom)).toEqual({ phone: null, email: null })
+    expect(await fetchSiteContacts('https://byg.dk/', boom)).toMatchObject({ phone: null, email: null })
   })
 })
 
@@ -154,13 +155,13 @@ describe('fetchSiteContacts redirects and failures', () => {
       seen.push(String(input))
       return Promise.resolve(redirect('http://169.254.169.254/latest/meta-data'))
     }) as typeof fetch
-    expect(await fetchSiteContacts('https://evil.dk/', f)).toEqual({ phone: null, email: null })
+    expect(await fetchSiteContacts('https://evil.dk/', f)).toMatchObject({ phone: null, email: null })
     expect(seen.some((u) => u.includes('169.254'))).toBe(false)
   })
 
   it('stops after too many redirects', async () => {
     const f = (() => Promise.resolve(redirect('https://loop.dk/'))) as typeof fetch
-    expect(await fetchSiteContacts('https://loop.dk/', f)).toEqual({ phone: null, email: null })
+    expect(await fetchSiteContacts('https://loop.dk/', f)).toMatchObject({ phone: null, email: null })
   })
 
   it('resolves the contact link against the redirected homepage', async () => {
@@ -181,6 +182,30 @@ describe('fetchSiteContacts redirects and failures', () => {
       if (u.pathname === '/kontakt') return Promise.reject(new Error('timeout'))
       return Promise.resolve(new Response('', { status: 404 }))
     }) as typeof fetch
-    expect(await fetchSiteContacts('https://byg.dk/', f)).toEqual({ phone: null, email: 'a@byg.dk' })
+    expect(await fetchSiteContacts('https://byg.dk/', f)).toMatchObject({ phone: null, email: 'a@byg.dk' })
+  })
+})
+
+describe('fetchSiteContacts read flag', () => {
+  const html = (body: string) => new Response(body, { status: 200, headers: { 'content-type': 'text/html' } })
+
+  it('marks a successful read with nothing found as read, so old contacts can be cleared', async () => {
+    const f = (() => Promise.resolve(html('<p>No details here</p>'))) as typeof fetch
+    expect(await fetchSiteContacts('https://byg.dk/', f)).toEqual({ phone: null, email: null, read: true })
+  })
+
+  it('marks an unreachable site as not read, so nothing is concluded from it', async () => {
+    const down = (() => Promise.reject(new Error('network'))) as typeof fetch
+    expect((await fetchSiteContacts('https://byg.dk/', down)).read).toBe(false)
+    const err500 = (() => Promise.resolve(new Response('x', { status: 500 }))) as typeof fetch
+    expect((await fetchSiteContacts('https://byg.dk/', err500)).read).toBe(false)
+  })
+
+  it('treats a robots.txt block as read, so stored contacts are dropped', async () => {
+    const f = ((input: RequestInfo | URL) =>
+      Promise.resolve(
+        new URL(String(input)).pathname === '/robots.txt' ? new Response('User-agent: *\nDisallow: /') : html('x')
+      )) as typeof fetch
+    expect(await fetchSiteContacts('https://byg.dk/', f)).toEqual({ phone: null, email: null, read: true })
   })
 })

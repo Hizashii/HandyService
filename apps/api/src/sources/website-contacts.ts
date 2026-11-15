@@ -6,6 +6,13 @@
 
 export type SiteContacts = { phone: string | null; email: string | null }
 
+/**
+ * What a website lookup produced. `read` is true when the site was actually read (or told us to stay
+ * away), so "nothing found" can be trusted and clear old values; false when it could not be reached,
+ * in which case nothing should be concluded from the empty result.
+ */
+export type SiteLookup = SiteContacts & { read: boolean }
+
 /** Biggest page we read. Contact info is near the top; this keeps one slow site from costing much. */
 const MAX_BYTES = 400_000
 const FETCH_TIMEOUT_MS = 6_000
@@ -196,19 +203,21 @@ export function robotsBlocksAll(robots: string): boolean {
  * Looks at a provider's homepage, and one contact page if the homepage did not have both details.
  * Never throws: any problem just means "nothing found".
  */
-export async function fetchSiteContacts(website: string, fetchImpl: typeof fetch = fetch): Promise<SiteContacts> {
-  const none: SiteContacts = { phone: null, email: null };
+export async function fetchSiteContacts(website: string, fetchImpl: typeof fetch = fetch): Promise<SiteLookup> {
+  const unreachable: SiteLookup = { phone: null, email: null, read: false };
   try {
-    if (!isPublicHttpUrl(website)) return none;
+    if (!isPublicHttpUrl(website)) return unreachable;
     const start = new URL(website);
 
     const robotsGet = await safeGet(new URL('/robots.txt', start), { 'user-agent': USER_AGENT }, fetchImpl).catch(
       () => null
     );
     const robots = robotsGet?.res.ok ? await robotsGet.res.text().catch(() => '') : '';
-    if (robotsBlocksAll(robots)) return none;
+    // The site asks robots to stay out: nothing may be read, so do not keep contacts we took from it.
+    if (robotsBlocksAll(robots)) return { phone: null, email: null, read: true };
 
     const home = await fetchHtml(start, fetchImpl);
+    if (!home.html) return unreachable;
     let found = extractContacts(home.html);
     if (!found.phone || !found.email) {
       // Resolve links against where the homepage really lives (it may redirect to www. or a subfolder).
@@ -222,8 +231,8 @@ export async function fetchSiteContacts(website: string, fetchImpl: typeof fetch
         }
       }
     }
-    return found;
+    return { ...found, read: true };
   } catch {
-    return none;
+    return unreachable;
   }
 }
