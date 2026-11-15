@@ -21,7 +21,10 @@ type ProviderRow = {
   city: string | null
   address: string | null
   phone: string | null
+  email: string | null
   website: string | null
+  site_phone: string | null
+  site_email: string | null
 }
 
 type RatingRow = { provider_id: string; source: string; rating: number; review_count: number; url: string | null }
@@ -79,6 +82,31 @@ async function findVanished(db: D1Database, scope: FetchScope, returned: Set<str
     .map((row) => row.id)
 }
 
+function upsertStatements(db: D1Database, providers: SourceProvider[], now: number) {
+  const upsert = db.prepare(
+    `INSERT INTO providers (id, source, name, categories, lat, lng, city, address, phone, email, website, fetched_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       name = excluded.name, categories = excluded.categories, lat = excluded.lat, lng = excluded.lng,
+       city = excluded.city, address = excluded.address, phone = excluded.phone, email = excluded.email,
+       website = excluded.website, fetched_at = excluded.fetched_at`
+  )
+  return providers.map((p) =>
+    upsert.bind(p.id, p.source, p.name, JSON.stringify(p.categories), p.lat, p.lng, p.city, p.address, p.phone, p.email, p.website, now)
+  )
+}
+
+/**
+ * Stores providers without marking any area as fetched and without removing anything. Used for the
+ * quick first look around the user, so those results can be shown while the full area is still loading.
+ */
+export async function upsertProviders(db: D1Database, providers: SourceProvider[], now: number) {
+  const statements = upsertStatements(db, providers, now)
+  for (let i = 0; i < statements.length; i += BATCH_SIZE) {
+    await db.batch(statements.slice(i, i + BATCH_SIZE))
+  }
+}
+
 export async function saveArea(
   db: D1Database,
   cell: string,
@@ -88,17 +116,7 @@ export async function saveArea(
   scope: FetchScope
 ) {
   const vanished = await findVanished(db, scope, new Set(providers.map((p) => p.id)))
-  const upsert = db.prepare(
-    `INSERT INTO providers (id, source, name, categories, lat, lng, city, address, phone, website, fetched_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       name = excluded.name, categories = excluded.categories, lat = excluded.lat, lng = excluded.lng,
-       city = excluded.city, address = excluded.address, phone = excluded.phone,
-       website = excluded.website, fetched_at = excluded.fetched_at`
-  )
-  const statements = providers.map((p) =>
-    upsert.bind(p.id, p.source, p.name, JSON.stringify(p.categories), p.lat, p.lng, p.city, p.address, p.phone, p.website, now)
-  )
+  const statements = upsertStatements(db, providers, now)
   for (const id of vanished) {
     statements.push(db.prepare('DELETE FROM providers WHERE id = ?').bind(id))
   }
@@ -142,7 +160,9 @@ function toProvider(row: ProviderRow, ratings: Rating[], distanceKm?: number): P
     lng: row.lng,
     city: row.city,
     address: row.address,
-    phone: row.phone,
+    // OpenStreetMap values win; details read from the provider's own website only fill gaps.
+    phone: row.phone ?? row.site_phone,
+    email: row.email ?? row.site_email,
     website: row.website,
     ratings,
     distanceKm,
@@ -208,4 +228,61 @@ export async function getProviderById(
   const ratings = await attachRatings(db, [row])
   const km = from ? Math.round(haversineKm(from.lat, from.lng, row.lat, row.lng) * 10) / 10 : undefined
   return toProvider(row, ratings.get(row.id) ?? [], km)
+}
+
+/** Look at a provider's website again after this long (found something or not). */
+export const CONTACT_RECHECK_MS = 30 * 24 * 60 * 60 * 1000
+
+/**
+ * Providers among `ids` that have a website, lack a phone or email in OpenStreetMap, and have not had
+ * their website checked recently. Judged on the OSM fields only: values read from a website are
+ * re-checked once they are older than CONTACT_RECHECK_MS, so changed contact details are picked up. At most `limit`, in the order given (nearest first).
+ */
+export async function contactCandidates(
+  db: D1Database,
+  ids: string[],
+  now: number,
+  limit: number
+): Promise<{ id: string; website: string }[]> {
+  const found = new Map<string, string>()
+  for (let i = 0; i < ids.length; i += 50) {
+    const chunk = ids.slice(i, i + 50)
+    const { results } = await db
+      .prepare(
+        `SELECT id, website FROM providers
+         WHERE id IN (${chunk.map(() => '?').join(',')})
+           AND website IS NOT NULL
+           AND (contact_checked_at IS NULL OR contact_checked_at < ?)
+           AND (phone IS NULL OR email IS NULL)`
+      )
+      .bind(...chunk, now - CONTACT_RECHECK_MS)
+      .all<{ id: string; website: string }>()
+    for (const r of results) found.set(r.id, r.website)
+  }
+  return ids
+    .filter((id) => found.has(id))
+    .slice(0, limit)
+    .map((id) => ({ id, website: found.get(id)! }))
+}
+
+/**
+ * Records the outcome of reading a provider's website. A successful read replaces the stored values,
+ * so a contact the business has withdrawn disappears. A failed read keeps what we had (one outage must
+ * not erase good data) and retries in a day instead of waiting a month. Never touches OSM columns.
+ */
+export async function saveSiteContacts(
+  db: D1Database,
+  id: string,
+  found: { phone: string | null; email: string | null; read: boolean },
+  now: number
+) {
+  if (found.read) {
+    await db
+      .prepare('UPDATE providers SET site_phone = ?, site_email = ?, contact_checked_at = ? WHERE id = ?')
+      .bind(found.phone, found.email, now, id)
+      .run()
+    return
+  }
+  const retryInOneDay = now - CONTACT_RECHECK_MS + 24 * 60 * 60 * 1000
+  await db.prepare('UPDATE providers SET contact_checked_at = ? WHERE id = ?').bind(retryInOneDay, id).run()
 }
