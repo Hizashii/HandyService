@@ -1,126 +1,77 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Search } from 'lucide-react-native';
+import { Filter, MapPin, Search as SearchIcon } from 'lucide-react-native';
+import { useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { Chip } from 'heroui-native/chip';
 
-import { ProviderCard } from '@/components/provider-card';
 import { Screen } from '@/components/screen';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { categories, overallRating, providers } from '@/data/mock';
-import { cn } from '@/lib/utils';
+import { TaskList } from '@/components/marketplace/task-list';
 
-const sorts = [
-  { id: 'rating', label: 'Top rated' },
-  { id: 'reviews', label: 'Most reviews' },
-  { id: 'price', label: 'Lowest price' },
-  { id: 'distance', label: 'Nearest' },
+const filters = [
+  { id: 'all', label: 'Alle' },
+  { id: 'cleaning', label: 'Rengøring' },
+  { id: 'handyman', label: 'Handyman' },
+  { id: 'moving', label: 'Flytning' },
+  { id: 'assembly', label: 'Montering' },
+  { id: 'gardening', label: 'Have & ude' },
+  { id: 'other', label: 'Andet' },
 ] as const;
-type SortId = (typeof sorts)[number]['id'];
 
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      className={cn(
-        'rounded-full border px-3.5 py-1.5',
-        active ? 'border-primary bg-primary' : 'border-border bg-background'
-      )}>
-      <Text className={cn('text-sm font-medium', active && 'text-primary-foreground')}>{label}</Text>
-    </Pressable>
-  );
-}
-
-export default function SearchScreen() {
+export default function ExploreScreen() {
   const { category } = useLocalSearchParams<{ category?: string }>();
-  const router = useRouter();
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<SortId>('rating');
-
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return providers
-      .filter((p) => !category || p.categories.some((c) => c === category))
-      .filter(
-        (p) =>
-          !q ||
-          p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.city.toLowerCase().includes(q)
-      )
-      .sort((a, b) => {
-        switch (sort) {
-          case 'reviews':
-            return overallRating(b.ratings).reviewCount - overallRating(a.ratings).reviewCount;
-          case 'price':
-            return a.priceLevel - b.priceLevel;
-          case 'distance':
-            return a.distanceKm - b.distanceKm;
-          default:
-            return overallRating(b.ratings).rating - overallRating(a.ratings).rating;
-        }
-      });
-  }, [query, category, sort]);
+  const [activeFilter, setActiveFilter] = useState(category ?? 'all');
+  const selectedFilter = useMemo(() => filters.find((filter) => filter.id === activeFilter), [activeFilter]);
 
   return (
-    <Screen title="Search">
-      <View className="justify-center">
-        <Input
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Carpenter, window cleaning..."
-          returnKeyType="search"
-          className="pl-10"
-        />
-        <View className="absolute bottom-0 left-3 top-0 justify-center" pointerEvents="none">
-          <Icon as={Search} size={18} className="text-muted-foreground" />
+    <Screen title="Udforsk opgaver" subtitle="Find lokale opgaver og den næste gode aftale.">
+      <View className="gap-3">
+        <View className="relative justify-center">
+          <Input
+            value={query}
+            onChangeText={setQuery}
+            placeholder="Søg efter en opgave"
+            className="min-h-14 rounded-2xl border border-border bg-surface pl-12 text-base"
+            accessibilityLabel="Search tasks"
+          />
+          <View className="absolute left-4" pointerEvents="none">
+            <Icon as={SearchIcon} size={19} className="text-brand" />
+          </View>
         </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+          {filters.map((filter) => (
+            <Chip
+              key={filter.id}
+              size="md"
+              variant={activeFilter === filter.id ? 'primary' : 'soft'}
+              color={activeFilter === filter.id ? 'accent' : 'default'}
+              onPress={() => setActiveFilter(filter.id)}>
+              <Chip.Label>{filter.label}</Chip.Label>
+            </Chip>
+          ))}
+        </ScrollView>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="grow-0"
-        contentContainerClassName="gap-2">
-        <Chip
-          label="All"
-          active={!category}
-          onPress={() => router.setParams({ category: undefined })}
-        />
-        {categories.map((c) => (
-          <Chip
-            key={c.id}
-            label={c.label}
-            active={category === c.id}
-            onPress={() => router.setParams({ category: c.id })}
-          />
-        ))}
-      </ScrollView>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        className="grow-0"
-        contentContainerClassName="items-center gap-2">
-        <Text variant="muted">Sort by</Text>
-        {sorts.map((s) => (
-          <Chip key={s.id} label={s.label} active={sort === s.id} onPress={() => setSort(s.id)} />
-        ))}
-      </ScrollView>
-
       <View className="gap-3">
-        <Text variant="muted">
-          {results.length} {results.length === 1 ? 'provider' : 'providers'} found
-        </Text>
-        {results.map((p) => (
-          <ProviderCard key={p.id} provider={p} />
-        ))}
-        {results.length === 0 ? (
-          <Text variant="muted" className="py-10 text-center">
-            Nothing matched. Try a different search or category.
-          </Text>
-        ) : null}
+        <View className="flex-row items-center justify-between">
+          <Text variant="h2">{selectedFilter?.label ?? 'Alle'} opgaver</Text>
+          <View className="flex-row items-center gap-1">
+            <Icon as={Filter} size={15} className="text-text-secondary" />
+            <Text variant="small" className="text-text-secondary">Nyeste først</Text>
+          </View>
+        </View>
+        <TaskList query={query} category={activeFilter} />
+      </View>
+
+      <View className="flex-row gap-3 rounded-3xl border border-border bg-surface p-4">
+        <Icon as={MapPin} size={19} className="mt-0.5 text-brand" />
+        <View className="flex-1 gap-1">
+          <Text className="font-bold">Lokal søgning</Text>
+          <Text className="leading-5 text-text-secondary">Søg efter by eller postnummer for at finde opgaver i dit område. Kundekonti ser egne opgaver.</Text>
+        </View>
       </View>
     </Screen>
   );

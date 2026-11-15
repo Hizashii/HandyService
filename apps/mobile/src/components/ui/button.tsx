@@ -1,55 +1,35 @@
-import { cva, type VariantProps } from 'class-variance-authority';
-import { Pressable, type PressableProps } from 'react-native';
+import { Button as HeroButton } from 'heroui-native/button';
+import { Spinner } from 'heroui-native/spinner';
+import type { PressableProps } from 'react-native';
+import type { ReactNode } from 'react';
 
-import { Text } from '@/components/ui/text';
-import { cn } from '@/lib/utils';
+type ButtonVariant = 'default' | 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'danger-soft';
+type ButtonSize = 'default' | 'sm' | 'lg' | 'icon';
 
-const buttonVariants = cva(
-  'flex-row items-center justify-center gap-2 rounded-md active:opacity-80',
-  {
-    variants: {
-      variant: {
-        default: 'bg-primary',
-        secondary: 'bg-secondary',
-        outline: 'border border-input bg-background',
-        ghost: '',
-      },
-      size: {
-        default: 'h-11 px-4',
-        sm: 'h-9 px-3',
-        icon: 'h-10 w-10',
-      },
-    },
-    defaultVariants: { variant: 'default', size: 'default' },
-  }
-);
+export type ButtonProps = PressableProps & {
+  className?: string;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  loading?: boolean;
+  children?: ReactNode;
+};
 
-const labelVariants = cva('font-medium', {
-  variants: {
-    variant: {
-      default: 'text-primary-foreground',
-      secondary: 'text-secondary-foreground',
-      outline: 'text-foreground',
-      ghost: 'text-foreground',
-    },
+export const Button = Object.assign(
+  function Button({ className, variant = 'default', size = 'default', loading, children, ...props }: ButtonProps) {
+    const heroVariant = variant === 'default' ? 'primary' : variant;
+    const heroSize = size === 'default' || size === 'icon' ? 'md' : size;
+
+    return (
+      <HeroButton
+        {...props}
+        variant={heroVariant}
+        size={heroSize}
+        isIconOnly={size === 'icon'}
+        isDisabled={props.disabled || loading}
+        className={className}>
+        {loading ? <Spinner color="accent" size="sm" /> : typeof children === 'string' ? <HeroButton.Label>{children}</HeroButton.Label> : children}
+      </HeroButton>
+    );
   },
-  defaultVariants: { variant: 'default' },
-});
-
-export type ButtonProps = PressableProps &
-  VariantProps<typeof buttonVariants> & { className?: string };
-
-export function Button({ className, variant, size, children, ...props }: ButtonProps) {
-  return (
-    <Pressable
-      role="button"
-      className={cn(buttonVariants({ variant, size }), props.disabled && 'opacity-50', className)}
-      {...props}>
-      {typeof children === 'string' ? (
-        <Text className={labelVariants({ variant })}>{children}</Text>
-      ) : (
-        (children as React.ReactNode)
-      )}
-    </Pressable>
-  );
-}
+  { Label: HeroButton.Label },
+);

@@ -3,15 +3,16 @@ import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 
 import { cn } from '@/lib/utils';
 
-export const textVariants = cva('text-base text-foreground', {
+export const textVariants = cva('font-sans text-base text-foreground', {
   variants: {
     variant: {
       default: '',
-      h1: 'text-3xl font-bold tracking-tight',
-      h2: 'text-xl font-semibold tracking-tight',
+      display: 'text-4xl font-extrabold tracking-tight',
+      h1: 'text-3xl font-extrabold tracking-tight',
+      h2: 'text-xl font-bold tracking-tight',
       h3: 'text-base font-semibold',
       small: 'text-sm',
-      muted: 'text-sm text-muted-foreground',
+      muted: 'text-sm text-text-secondary',
     },
   },
   defaultVariants: { variant: 'default' },
