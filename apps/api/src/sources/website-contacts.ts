@@ -200,6 +200,22 @@ const MAX_PATTERN_LENGTH = 300;
 
 type RobotsRule = { allow: boolean; pattern: string };
 
+/**
+ * Puts a robots.txt pattern or a URL path in one canonical form so they can be compared: non-ASCII
+ * characters (for example "æ") become UTF-8 percent-escapes, as they are in a real URL path, and the
+ * hex digits of existing escapes are upper-cased ("%c3%a6" and "%C3%A6" are the same thing).
+ */
+function normalizeRobotsPath(text: string): string {
+  const encoded = text.replace(/[^\x00-\x7F]+/gu, (run) => {
+    try {
+      return encodeURIComponent(run);
+    } catch {
+      return run; // a lone surrogate cannot be encoded; leave it as is
+    }
+  });
+  return encoded.replace(/%[0-9a-f]{2}/gi, (escape) => escape.toUpperCase());
+}
+
 /** The rules in a robots.txt that apply to us: our own group if there is one, otherwise the "*" group. */
 function rulesFor(robots: string): RobotsRule[] {
   const groups: { agents: string[]; rules: RobotsRule[] }[] = [];
@@ -222,7 +238,7 @@ function rulesFor(robots: string): RobotsRule[] {
       lastWasAgent = false;
       // An empty Disallow means "nothing is disallowed", so it adds no rule.
       if (current && value !== '' && value.length <= MAX_PATTERN_LENGTH && current.rules.length < MAX_ROBOTS_RULES) {
-        current.rules.push({ allow: key === 'allow', pattern: value });
+        current.rules.push({ allow: key === 'allow', pattern: normalizeRobotsPath(value) });
       }
     }
   }
@@ -266,8 +282,9 @@ function patternMatches(pattern: string, path: string): boolean {
  */
 export function robotsAllows(robots: string, path: string): boolean {
   let best: RobotsRule | null = null;
+  const target = normalizeRobotsPath(path);
   for (const rule of rulesFor(robots)) {
-    if (!patternMatches(rule.pattern, path)) continue;
+    if (!patternMatches(rule.pattern, target)) continue;
     if (!best || rule.pattern.length > best.pattern.length || (rule.pattern.length === best.pattern.length && rule.allow)) {
       best = rule;
     }

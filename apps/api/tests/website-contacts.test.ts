@@ -323,3 +323,33 @@ describe('fetchSiteContacts and robots.txt paths', () => {
     });
   });
 });
+
+describe('robots.txt and non-ASCII or encoded paths', () => {
+  it('matches a non-ASCII rule against the encoded URL path, whichever way either is written', () => {
+    const r = 'User-agent: *\nDisallow: /kontakt/æ';
+    expect(robotsAllows(r, '/kontakt/%C3%A6')).toBe(false);
+    expect(robotsAllows(r, '/kontakt/%c3%a6')).toBe(false);
+    expect(robotsAllows(r, '/kontakt/æ')).toBe(false);
+    expect(robotsAllows(r, '/kontakt/e')).toBe(true);
+  });
+
+  it('matches a rule written as percent-escapes against a non-ASCII path', () => {
+    expect(robotsAllows('User-agent: *\nDisallow: /h%c3%a5ndv%C3%A6rker', '/håndværker/side')).toBe(false);
+  });
+
+  it('does not read a contact page whose robots.txt rule uses Danish letters', () => {
+    const requested: string[] = [];
+    const page = (body: string) => new Response(body, { status: 200, headers: { 'content-type': 'text/html' } });
+    const f = ((input: RequestInfo | URL) => {
+      const u = new URL(String(input));
+      requested.push(u.pathname);
+      if (u.pathname === '/robots.txt') return Promise.resolve(new Response('User-agent: *\nDisallow: /kontakt/æ'));
+      if (u.pathname === '/') return Promise.resolve(page('<a href="/kontakt/æ">kontakt</a>'));
+      return Promise.resolve(page('<a href="mailto:hemmelig@byg.dk">m</a>'));
+    }) as typeof fetch;
+    return fetchSiteContacts('https://byg.dk/', f).then((r) => {
+      expect(requested.some((p) => p.startsWith('/kontakt'))).toBe(false);
+      expect(r.email).toBeNull();
+    });
+  });
+});
