@@ -3,19 +3,20 @@ import { Search } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { ProviderCard } from '@/components/provider-card';
+import { LocationBar } from '@/components/location-bar';
+import { ProviderList } from '@/components/provider-list';
 import { Screen } from '@/components/screen';
 import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { categories, overallRating, providers } from '@/data/mock';
+import { categories, overallRating } from '@/data/categories';
+import { useLocation } from '@/hooks/use-location';
+import { useProviders } from '@/hooks/use-providers';
 import { cn } from '@/lib/utils';
 
 const sorts = [
-  { id: 'rating', label: 'Top rated' },
-  { id: 'reviews', label: 'Most reviews' },
-  { id: 'price', label: 'Lowest price' },
   { id: 'distance', label: 'Nearest' },
+  { id: 'rating', label: 'Top rated' },
 ] as const;
 type SortId = (typeof sorts)[number]['id'];
 
@@ -35,41 +36,33 @@ function Chip({ label, active, onPress }: { label: string; active: boolean; onPr
 export default function SearchScreen() {
   const { category } = useLocalSearchParams<{ category?: string }>();
   const router = useRouter();
+  const { place } = useLocation();
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState<SortId>('rating');
+  const [sort, setSort] = useState<SortId>('distance');
+  const { providers, loading, error } = useProviders({ category, q: query });
 
-  const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return providers
-      .filter((p) => !category || p.categories.some((c) => c === category))
-      .filter(
-        (p) =>
-          !q ||
-          p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q) ||
-          p.city.toLowerCase().includes(q)
-      )
-      .sort((a, b) => {
-        switch (sort) {
-          case 'reviews':
-            return overallRating(b.ratings).reviewCount - overallRating(a.ratings).reviewCount;
-          case 'price':
-            return a.priceLevel - b.priceLevel;
-          case 'distance':
-            return a.distanceKm - b.distanceKm;
-          default:
-            return overallRating(b.ratings).rating - overallRating(a.ratings).rating;
-        }
-      });
-  }, [query, category, sort]);
+  // The API returns nearest first; "Top rated" puts rated providers on top and keeps distance order within ties.
+  const sorted = useMemo(() => {
+    if (sort === 'distance') return providers;
+    return [...providers].sort((a, b) => {
+      const ra = overallRating(a.ratings);
+      const rb = overallRating(b.ratings);
+      if (ra.reviewCount === 0 && rb.reviewCount === 0) return 0;
+      if (ra.reviewCount === 0) return 1;
+      if (rb.reviewCount === 0) return -1;
+      return rb.rating - ra.rating;
+    });
+  }, [providers, sort]);
 
   return (
     <Screen title="Search">
+      <LocationBar />
+
       <View className="justify-center">
         <Input
           value={query}
           onChangeText={setQuery}
-          placeholder="Carpenter, window cleaning..."
+          placeholder="Search by name..."
           returnKeyType="search"
           className="pl-10"
         />
@@ -110,17 +103,12 @@ export default function SearchScreen() {
       </ScrollView>
 
       <View className="gap-3">
-        <Text variant="muted">
-          {results.length} {results.length === 1 ? 'provider' : 'providers'} found
-        </Text>
-        {results.map((p) => (
-          <ProviderCard key={p.id} provider={p} />
-        ))}
-        {results.length === 0 ? (
-          <Text variant="muted" className="py-10 text-center">
-            Nothing matched. Try a different search or category.
+        {!loading && !error && place ? (
+          <Text variant="muted">
+            {sorted.length} {sorted.length === 1 ? 'provider' : 'providers'} within 25 km
           </Text>
         ) : null}
+        <ProviderList providers={sorted} loading={loading} error={error} hasLocation={place !== null} />
       </View>
     </Screen>
   );

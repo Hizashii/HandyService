@@ -3,22 +3,26 @@ import { Search } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 
 import { categoryIcons } from '@/components/category-icon';
-import { ProviderCard } from '@/components/provider-card';
+import { LocationBar } from '@/components/location-bar';
+import { ProviderList } from '@/components/provider-list';
 import { Screen } from '@/components/screen';
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { categories, overallRating, providers } from '@/data/mock';
+import { categories } from '@/data/categories';
+import { useLocation } from '@/hooks/use-location';
+import { useProviders } from '@/hooks/use-providers';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const topRated = [...providers]
-    .sort((a, b) => overallRating(b.ratings).rating - overallRating(a.ratings).rating)
-    .slice(0, 3);
+  const { place } = useLocation();
+  const { providers, loading, error } = useProviders();
 
   return (
     <Screen
       title="Find a pro"
-      subtitle="We gather local service providers and their reviews in one place.">
+      subtitle="Service providers near you, gathered in one place.">
+      <LocationBar />
+
       <Pressable
         onPress={() => router.push('/search')}
         className="h-12 flex-row items-center gap-2 rounded-md border border-input bg-background px-3">
@@ -44,10 +48,13 @@ export default function HomeScreen() {
       </View>
 
       <View className="gap-3">
-        <Text variant="h2">Top rated</Text>
-        {topRated.map((p) => (
-          <ProviderCard key={p.id} provider={p} />
-        ))}
+        <Text variant="h2">Near you</Text>
+        <ProviderList
+          providers={providers.slice(0, 5)}
+          loading={loading}
+          error={error}
+          hasLocation={place !== null}
+        />
       </View>
     </Screen>
   );

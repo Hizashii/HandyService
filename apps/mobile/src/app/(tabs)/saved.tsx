@@ -3,12 +3,10 @@ import { View } from 'react-native';
 import { ProviderCard } from '@/components/provider-card';
 import { Screen } from '@/components/screen';
 import { Text } from '@/components/ui/text';
-import { providers } from '@/data/mock';
 import { useSaved } from '@/hooks/use-saved';
 
 export default function SavedScreen() {
-  const { savedIds } = useSaved();
-  const saved = providers.filter((p) => savedIds.includes(p.id));
+  const { saved } = useSaved();
 
   return (
     <Screen title="Saved" subtitle="Providers you want to compare or come back to.">

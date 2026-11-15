@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { LocationProvider } from '@/hooks/use-location';
 import { SavedProvider } from '@/hooks/use-saved';
 
 SplashScreen.preventAutoHideAsync();
@@ -24,14 +25,16 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <SavedProvider>
-        <AnimatedSplashOverlay />
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="provider/[id]" options={{ headerBackTitle: 'Back' }} />
-        </Stack>
-        <PortalHost />
-      </SavedProvider>
+      <LocationProvider>
+        <SavedProvider>
+          <AnimatedSplashOverlay />
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="provider/[id]" options={{ headerBackTitle: 'Back' }} />
+          </Stack>
+          <PortalHost />
+        </SavedProvider>
+      </LocationProvider>
     </ThemeProvider>
   );
 }
