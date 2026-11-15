@@ -13,9 +13,27 @@ Phones use the web app in their browser (and can add it to the home screen). A r
 
 ## 1. Deploy the API
 
+### 1a. Log in and pick the database
+
 ```bash
 cd apps/api
 npx wrangler login               # opens the browser, one time
+```
+
+`apps/api/wrangler.jsonc` contains a `database_id` that belongs to **one specific Cloudflare account**. A database can only be used by the account that owns it, so decide which case you are in:
+
+- **You are deploying from the account that already owns the `helpdk` database** (the one that created it). Nothing to change, go to 1b.
+- **You are deploying from a different or new account.** Create your own database and point the config at it:
+
+  ```bash
+  npm run db:create              # prints a database_id
+  ```
+
+  Copy the printed `database_id` into `d1_databases[0].database_id` in `apps/api/wrangler.jsonc` and commit that change (everyone deploying to this account needs the same value). Keep the database name `helpdk`, because the migration scripts use it.
+
+### 1b. Migrate and deploy
+
+```bash
 npm run db:migrate:remote        # applies every migration to the real database
 npm run deploy
 ```
