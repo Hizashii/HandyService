@@ -6,6 +6,7 @@ import {
   findContactPage,
   isPublicHttpUrl,
   normalizePhone,
+  robotsAllows,
   robotsBlocksAll,
 } from '../src/sources/website-contacts'
 
@@ -209,3 +210,146 @@ describe('fetchSiteContacts read flag', () => {
     expect(await fetchSiteContacts('https://byg.dk/', f)).toEqual({ phone: null, email: null, read: true })
   })
 })
+
+describe('robotsAllows (path rules)', () => {
+  it('blocks only the disallowed path and what is under it', () => {
+    const r = 'User-agent: *\nDisallow: /kontakt';
+    expect(robotsAllows(r, '/kontakt')).toBe(false);
+    expect(robotsAllows(r, '/kontakt/os')).toBe(false);
+    expect(robotsAllows(r, '/')).toBe(true);
+    expect(robotsAllows(r, '/om')).toBe(true);
+  });
+
+  it('lets a longer Allow override a shorter Disallow, and Allow win a tie', () => {
+    const r = 'User-agent: *\nDisallow: /privat\nAllow: /privat/offentlig';
+    expect(robotsAllows(r, '/privat/offentlig/side')).toBe(true);
+    expect(robotsAllows(r, '/privat/andet')).toBe(false);
+    expect(robotsAllows('User-agent: *\nDisallow: /a\nAllow: /a', '/a')).toBe(true);
+  });
+
+  it('supports * wildcards and a trailing $', () => {
+    const r = 'User-agent: *\nDisallow: /*.pdf$\nDisallow: /soeg?*';
+    expect(robotsAllows(r, '/fil.pdf')).toBe(false);
+    expect(robotsAllows(r, '/fil.pdf?x=1')).toBe(true);
+    expect(robotsAllows(r, '/soeg?q=1')).toBe(false);
+    expect(robotsAllows(r, '/soeg')).toBe(true);
+  });
+
+  it('prefers a group naming us over the * group', () => {
+    const r = 'User-agent: *\nDisallow: /\n\nUser-agent: Haandmatch\nDisallow: /hemmelig';
+    expect(robotsAllows(r, '/')).toBe(true);
+    expect(robotsAllows(r, '/hemmelig')).toBe(false);
+  });
+
+  it('treats an empty Disallow as allow-all and shares a group between consecutive agents', () => {
+    expect(robotsAllows('User-agent: *\nDisallow:', '/kontakt')).toBe(true);
+    expect(robotsAllows('User-agent: googlebot\nUser-agent: *\nDisallow: /x', '/x')).toBe(false);
+  });
+
+  it('stays fast on a hostile pattern', () => {
+    const r = 'User-agent: *\nDisallow: /*a*a*a*a*a*a*a*a*a*a*b';
+    const started = Date.now();
+    expect(robotsAllows(r, '/' + 'a'.repeat(250))).toBe(true);
+    expect(Date.now() - started).toBeLessThan(500);
+  });
+});
+
+describe('fetchSiteContacts and robots.txt paths', () => {
+  const html = (body: string) => new Response(body, { status: 200, headers: { 'content-type': 'text/html' } });
+  const robots = (text: string) => new Response(text, { status: 200, headers: { 'content-type': 'text/plain' } });
+
+  function tracked(handler: (u: URL) => Response | Promise<Response>) {
+    const requested: string[] = [];
+    const f = ((input: RequestInfo | URL) => {
+      const u = new URL(String(input));
+      requested.push(u.href);
+      return Promise.resolve(handler(u));
+    }) as typeof fetch;
+    return { f, requested };
+  }
+
+  it('does not read a contact page that robots.txt disallows, but keeps the homepage details', () => {
+    const { f, requested } = tracked((u) => {
+      if (u.pathname === '/robots.txt') return robots('User-agent: *\nDisallow: /kontakt');
+      if (u.pathname === '/') return html('<a href="/kontakt">k</a><a href="tel:75123456">t</a>');
+      return html('<a href="mailto:hemmelig@byg.dk">m</a>');
+    });
+    return fetchSiteContacts('https://byg.dk/', f).then((r) => {
+      expect(requested.some((u) => u.endsWith('/kontakt'))).toBe(false);
+      expect(r).toEqual({ phone: '+4575123456', email: null, read: true });
+    });
+  });
+
+  it('reads a contact page that robots.txt does not mention', () => {
+    const { f } = tracked((u) => {
+      if (u.pathname === '/robots.txt') return robots('User-agent: *\nDisallow: /admin');
+      if (u.pathname === '/') return html('<a href="/kontakt">k</a>');
+      return html('<a href="mailto:a@byg.dk">m</a>');
+    });
+    return fetchSiteContacts('https://byg.dk/', f).then((r) => expect(r.email).toBe('a@byg.dk'));
+  });
+
+  it('never fetches the homepage when robots.txt disallows it, and counts that as read', () => {
+    const { f, requested } = tracked((u) =>
+      u.pathname === '/robots.txt' ? robots('User-agent: *\nDisallow: /') : html('<a href="mailto:a@byg.dk">m</a>')
+    );
+    return fetchSiteContacts('https://byg.dk/', f).then((r) => {
+      expect(requested).toEqual(['https://byg.dk/robots.txt']);
+      expect(r).toEqual({ phone: null, email: null, read: true });
+    });
+  });
+
+  it('leaves the site alone, concluding nothing, when robots.txt cannot be fetched (5xx)', () => {
+    const { f, requested } = tracked((u) =>
+      u.pathname === '/robots.txt' ? new Response('x', { status: 503 }) : html('<a href="mailto:a@byg.dk">m</a>')
+    );
+    return fetchSiteContacts('https://byg.dk/', f).then((r) => {
+      expect(requested).toEqual(['https://byg.dk/robots.txt']);
+      expect(r.read).toBe(false);
+    });
+  });
+
+  it('checks the redirected host against its own robots.txt before reading it', () => {
+    const redirect = new Response(null, { status: 301, headers: { location: 'https://www.byg.dk/' } });
+    const { f, requested } = tracked((u) => {
+      if (u.href === 'https://byg.dk/robots.txt') return robots('');
+      if (u.href === 'https://byg.dk/') return redirect;
+      if (u.href === 'https://www.byg.dk/robots.txt') return robots('User-agent: *\nDisallow: /');
+      return html('<a href="mailto:a@byg.dk">m</a>');
+    });
+    return fetchSiteContacts('https://byg.dk/', f).then((r) => {
+      expect(requested).not.toContain('https://www.byg.dk/');
+      expect(r).toEqual({ phone: null, email: null, read: true });
+    });
+  });
+});
+
+describe('robots.txt and non-ASCII or encoded paths', () => {
+  it('matches a non-ASCII rule against the encoded URL path, whichever way either is written', () => {
+    const r = 'User-agent: *\nDisallow: /kontakt/æ';
+    expect(robotsAllows(r, '/kontakt/%C3%A6')).toBe(false);
+    expect(robotsAllows(r, '/kontakt/%c3%a6')).toBe(false);
+    expect(robotsAllows(r, '/kontakt/æ')).toBe(false);
+    expect(robotsAllows(r, '/kontakt/e')).toBe(true);
+  });
+
+  it('matches a rule written as percent-escapes against a non-ASCII path', () => {
+    expect(robotsAllows('User-agent: *\nDisallow: /h%c3%a5ndv%C3%A6rker', '/håndværker/side')).toBe(false);
+  });
+
+  it('does not read a contact page whose robots.txt rule uses Danish letters', () => {
+    const requested: string[] = [];
+    const page = (body: string) => new Response(body, { status: 200, headers: { 'content-type': 'text/html' } });
+    const f = ((input: RequestInfo | URL) => {
+      const u = new URL(String(input));
+      requested.push(u.pathname);
+      if (u.pathname === '/robots.txt') return Promise.resolve(new Response('User-agent: *\nDisallow: /kontakt/æ'));
+      if (u.pathname === '/') return Promise.resolve(page('<a href="/kontakt/æ">kontakt</a>'));
+      return Promise.resolve(page('<a href="mailto:hemmelig@byg.dk">m</a>'));
+    }) as typeof fetch;
+    return fetchSiteContacts('https://byg.dk/', f).then((r) => {
+      expect(requested.some((p) => p.startsWith('/kontakt'))).toBe(false);
+      expect(r.email).toBeNull();
+    });
+  });
+});
