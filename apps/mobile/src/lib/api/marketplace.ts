@@ -1,9 +1,10 @@
 import { ApiError } from '@/auth/api';
 import { getStoredSessionToken } from '@/auth/storage';
+import { API_URL } from '@/lib/api';
 
 export type Task = { id: string; owner_id: string; title: string; description: string | null; status: 'open' | 'assigned' | 'completed' | 'cancelled'; created_at: number; updated_at: number };
 export type Offer = { id: string; task_id: string; provider_id: string; amount: number; message: string | null; status: 'pending' | 'accepted' | 'rejected' | 'withdrawn'; created_at: number };
-const base = (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8787').replace(/\/$/, '');
+const base = API_URL;
 async function request<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const token = await getStoredSessionToken();
   if (!token) throw new ApiError('Log ind igen for at fortsætte.', 401);

@@ -69,7 +69,7 @@ function RoleOption({ selected, icon: IconComponent, title, description, onPress
     <Pressable accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} className={`min-h-[76px] flex-row items-center gap-3 rounded-2xl border p-4 active:opacity-80 ${selected ? 'border-2 border-brand bg-accent-soft' : 'border-border bg-surface'}`}>
       <View className="h-10 w-10 items-center justify-center rounded-xl bg-surface"><Icon as={IconComponent} size={20} className="text-brand" /></View>
       <View className="flex-1 gap-0.5"><Text className="font-bold">{title}</Text><Text className="text-sm text-text-secondary">{description}</Text></View>
-      <View className={`h-6 w-6 items-center justify-center rounded-full border ${selected ? 'border-brand bg-brand' : 'border-border bg-surface'}`}>{selected ? <Icon as={Check} size={14} color="#FFFFFF" strokeWidth={3} /> : null}</View>
+      <View className={`h-6 w-6 items-center justify-center rounded-full border ${selected ? 'border-brand bg-brand' : 'border-border bg-surface'}`}>{selected ? <Icon as={Check} size={14} className="text-accent-foreground" strokeWidth={3} /> : null}</View>
     </Pressable>
   );
 }

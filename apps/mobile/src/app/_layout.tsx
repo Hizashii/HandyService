@@ -16,6 +16,7 @@ import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import { BrandMark } from '@/components/layout/brand-mark';
 import { Text } from '@/components/ui/text';
 import { SavedProvider } from '@/hooks/use-saved';
+import { LocationProvider } from '@/hooks/use-location';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -58,7 +59,7 @@ function RootNavigator() {
   }
 
   return (
-    <SavedProvider>
+    <LocationProvider><SavedProvider>
       <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false, animation: reducedMotion ? 'none' : 'fade' }}>
         <Stack.Protected guard={isAuthenticated} redirectTo="/login">
@@ -74,14 +75,15 @@ function RootNavigator() {
           <Stack.Screen name="register" options={{ presentation: 'modal' }} />
         </Stack.Protected>
       </Stack>
-    </SavedProvider>
+    </SavedProvider></LocationProvider>
   );
 }
 
 export default function RootLayout() {
+  const reducedMotion = useReducedMotion();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <HeroUINativeProvider config={heroConfig}>
+      <HeroUINativeProvider config={{ ...heroConfig, animation: reducedMotion ? 'disable-all' : undefined }}>
         <AuthProvider>
           <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background"><RootNavigator /></SafeAreaView>
         </AuthProvider>

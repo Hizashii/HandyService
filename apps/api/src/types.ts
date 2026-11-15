@@ -30,6 +30,8 @@ export type AuthenticatedSession = {
 export type AppEnv = {
   Bindings: {
     DB: D1Database;
+    /** Comma-separated ISO country codes the /api/geocode endpoint is limited to (e.g. "dk"). */
+    GEOCODE_COUNTRIES?: string;
   };
   Variables: {
     user: PublicUser;

@@ -9,6 +9,10 @@ import { Icon } from '@/components/ui/icon';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { TaskList } from '@/components/marketplace/task-list';
+import { LocationBar } from '@/components/location-bar';
+import { ProviderList } from '@/components/provider-list';
+import { useLocation } from '@/hooks/use-location';
+import { useProviders } from '@/hooks/use-providers';
 
 const filters = [
   { id: 'all', label: 'Alle' },
@@ -21,14 +25,20 @@ const filters = [
 ] as const;
 
 export default function ExploreScreen() {
-  const { category } = useLocalSearchParams<{ category?: string }>();
+  const { category, mode: initialMode } = useLocalSearchParams<{ category?: string; mode?: string }>();
+  const [mode, setMode] = useState(initialMode ?? 'tasks');
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState(category ?? 'all');
   const selectedFilter = useMemo(() => filters.find((filter) => filter.id === activeFilter), [activeFilter]);
+  const { place } = useLocation();
+  const providerCategory = activeFilter === 'handyman' ? 'repairs' : activeFilter === 'assembly' ? 'carpentry' : activeFilter === 'all' || activeFilter === 'other' ? undefined : activeFilter;
+  const providerResults = useProviders({ category: providerCategory, q: query });
 
   return (
     <Screen title="Udforsk opgaver" subtitle="Find lokale opgaver og den næste gode aftale.">
       <View className="gap-3">
+        <View className="flex-row gap-2"><Chip onPress={() => setMode('tasks')} variant={mode === 'tasks' ? 'primary' : 'soft'}><Chip.Label>Opgaver</Chip.Label></Chip><Chip onPress={() => setMode('providers')} variant={mode === 'providers' ? 'primary' : 'soft'}><Chip.Label>Find hjælpere</Chip.Label></Chip></View>
+        {mode === 'providers' ? <LocationBar /> : null}
         <View className="relative justify-center">
           <Input
             value={query}
@@ -63,7 +73,7 @@ export default function ExploreScreen() {
             <Text variant="small" className="text-text-secondary">Nyeste først</Text>
           </View>
         </View>
-        <TaskList query={query} category={activeFilter} />
+        {mode === 'providers' ? <ProviderList {...providerResults} hasLocation={Boolean(place)} /> : <TaskList query={query} category={activeFilter} />}
       </View>
 
       <View className="flex-row gap-3 rounded-3xl border border-border bg-surface p-4">

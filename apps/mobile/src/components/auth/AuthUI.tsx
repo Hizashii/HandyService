@@ -5,9 +5,7 @@ import { Input as HeroInput } from 'heroui-native/input';
 import { Label } from 'heroui-native/label';
 import { Spinner } from 'heroui-native/spinner';
 import { TextField } from 'heroui-native/text-field';
-import { Link } from 'expo-router';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View, type TextInputProps } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { KeyboardAvoidingView, Platform, ScrollView, View, type TextInputProps } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 
@@ -26,7 +24,7 @@ export function AuthShell({
   children: ReactNode;
 }) {
   return (
-    <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-background">
+    <View className="flex-1 bg-background">
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -37,13 +35,6 @@ export function AuthShell({
             <View className="gap-8">
               <View className="flex-row items-center justify-between">
                 <BrandMark compact />
-                <Link href="/" asChild>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Go to home" hitSlop={8}>
-                    <Text variant="small" className="font-semibold text-brand-dark">
-                      HelpDK
-                    </Text>
-                  </Pressable>
-                </Link>
               </View>
               <View className="gap-2">
                 {eyebrow ? <Text className="text-xs font-bold uppercase tracking-[3px] text-brand">{eyebrow}</Text> : null}
@@ -57,7 +48,7 @@ export function AuthShell({
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

@@ -11,6 +11,15 @@
   --color-brand-dark: var(--link);
   --color-surface-muted: var(--surface-secondary);
   --color-text-secondary: var(--muted);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-foreground);
+  --color-secondary: var(--surface-secondary);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted);
+  --color-card: var(--surface);
+  --color-input: var(--border);
+  --color-destructive: var(--danger);
+  --color-accent-soft: var(--surface-tertiary);
   --radius: 0.75rem;
 }
 
@@ -21,6 +30,7 @@
 
 @layer base {
   .hero-text { font-family: 'Manrope_400Regular'; }
+  .input__input { font-family: 'Manrope_400Regular'; }
 }
 
 @layer theme {

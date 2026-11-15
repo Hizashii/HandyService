@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { BrandMark } from '@/components/layout/brand-mark';
 import { Icon } from '@/components/ui/icon';
 import { colors } from '@/lib/theme';
+import { useLocation } from '@/hooks/use-location';
 
 export function AppHeader({ showLocation = true }: { showLocation?: boolean }) {
   const router = useRouter();
@@ -35,7 +36,8 @@ export function AppHeader({ showLocation = true }: { showLocation?: boolean }) {
 }
 
 function AppHeaderLabel() {
-  return <RNText className="font-semibold text-xs text-foreground">Hele Danmark</RNText>;
+  const { place } = useLocation();
+  return <RNText numberOfLines={1} className="font-semibold text-xs text-foreground">{place?.name ?? 'Danmark'}</RNText>;
 }
 
 export function UtilityHeader({ title, onBack }: { title: string; onBack?: () => void }) {

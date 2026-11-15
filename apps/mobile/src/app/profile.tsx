@@ -31,7 +31,7 @@ export default function ProfileScreen() {
       {isProvider ? (
         <Card className="gap-3 rounded-3xl border-0 bg-accent-soft p-5">
           <View className="flex-row items-center gap-3"><View className="h-10 w-10 items-center justify-center rounded-2xl bg-surface"><Icon as={BriefcaseBusiness} size={19} className="text-brand" /></View><View className="flex-1"><Text variant="h3">Din hjælperportal</Text><Text className="text-sm text-text-secondary">Opgaver, tilbud og serviceområder samlet ét sted.</Text></View></View>
-          <Button onPress={() => router.push('/provider' as never)}><Button.Label>Åbn hjælperportal</Button.Label><Icon as={ChevronRight} size={18} className="text-accent-foreground" /></Button>
+          <Button onPress={() => router.push('/provider')}><Button.Label>Åbn hjælperportal</Button.Label><Icon as={ChevronRight} size={18} className="text-accent-foreground" /></Button>
         </Card>
       ) : (
         <EmptyState icon={BriefcaseBusiness} title="Vil du også tilbyde hjælp?" body="Du kan oprette en hjælperkonto, når provider-rollen er tilgængelig for din konto." />

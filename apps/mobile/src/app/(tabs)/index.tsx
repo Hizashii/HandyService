@@ -46,7 +46,7 @@ export default function HomeScreen() {
           <Icon as={Search} size={21} className="text-brand" />
           <Text className="flex-1 text-base text-text-secondary">Hvad skal du have hjælp til?</Text>
           <View className="h-9 w-9 items-center justify-center rounded-xl bg-brand">
-            <Icon as={ArrowRight} size={18} color="#FFFFFF" />
+            <Icon as={ArrowRight} size={18} className="text-accent-foreground" />
           </View>
         </Pressable>
       </Animated.View>
@@ -68,7 +68,7 @@ export default function HomeScreen() {
                 icon={category.icon}
                 onPress={() => {
                   void Haptics.selectionAsync();
-                  router.push({ pathname: '/search', params: { category: category.id } });
+                  router.push({ pathname: '/search', params: { category: category.id, mode: 'providers' } });
                 }}
               />
             </View>
@@ -85,17 +85,17 @@ export default function HomeScreen() {
         <Button
           variant="outline"
           className="self-start border-0 bg-white"
-          onPress={() => router.push('/create-task' as never)}>
+          onPress={() => router.push('/create-task')}>
           <Button.Label className="font-bold text-brand">Opret en opgave</Button.Label>
-          <Icon as={ArrowRight} size={18} color="#087F5B" />
+          <Icon as={ArrowRight} size={18} className="text-brand" />
         </Button>
       </Card>
 
       <View className="gap-4 pb-2">
         <SectionHeading title="Sådan fungerer HelpDK" />
         <Step index="01" icon={Search} title="Fortæl, hvad du har brug for" copy="Vælg en kategori og beskriv opgaven med dine egne ord." />
-        <Step index="02" icon={Hammer} title="Få overblik over muligheder" copy="Se de næste skridt, når din lokale markedsplads er klar." />
-        <Step index="03" icon={CheckCircle2} title="Vælg det, der passer dig" copy="Hold aftaler og forventninger tydelige fra start til slut." />
+        <Step index="02" icon={Hammer} title="Modtag tilbud fra hjælpere" copy="Sammenlign pris og besked fra hjælpere, der vil løse opgaven." />
+        <Step index="03" icon={CheckCircle2} title="Vælg det, der passer dig" copy="Accepter et tilbud, og få et klart overblik over din aftale." />
       </View>
     </Screen>
   );

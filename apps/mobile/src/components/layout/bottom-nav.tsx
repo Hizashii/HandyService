@@ -19,14 +19,14 @@ export function BottomNav() {
   const activeKey = pathname === '/' ? 'home' : pathname.startsWith('/search') ? 'explore' : pathname.startsWith('/profile') ? 'profile' : 'tasks';
 
   return (
-    <SafeAreaView edges={['bottom']} className="border-t border-border bg-surface">
+    <SafeAreaView edges={[]} className="border-t border-border bg-surface">
       <View className="h-[68px] flex-row items-center justify-around px-2">
         {items.slice(0, 2).map((item) => <NavItem key={item.key} icon={item.icon} label={item.label} path={item.path} active={activeKey === item.key} />)}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Post a task"
           className="-mt-7 h-[58px] w-[58px] items-center justify-center rounded-full border-4 border-background bg-brand"
-          onPress={() => router.push('/create-task' as never)}>
+          onPress={() => router.push('/create-task')}>
           <Icon as={Plus} size={24} color={colors.light.onBrand} strokeWidth={2.5} />
         </Pressable>
         {items.slice(2).map((item) => <NavItem key={item.key} icon={item.icon} label={item.label} path={item.path} active={activeKey === item.key} />)}

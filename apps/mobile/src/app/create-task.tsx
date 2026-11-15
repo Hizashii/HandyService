@@ -56,7 +56,7 @@ export default function CreateTaskScreen() {
     const nextErrors: Partial<Record<keyof Draft, string>> = {};
     if (step === 0 && !draft.category) nextErrors.category = 'Vælg den kategori, der passer bedst.';
     if (step === 1) {
-      if (!draft.title.trim()) nextErrors.title = 'Skriv en kort titel på opgaven.';
+      if (!draft.title.trim() || draft.title.trim().length > 120) nextErrors.title = 'Skriv en titel på 1–120 tegn.';
       if (draft.description.trim().length < 10) nextErrors.description = 'Beskriv opgaven med mindst 10 tegn.';
     }
     if (step === 2) {

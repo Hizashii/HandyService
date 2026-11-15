@@ -1,26 +1,30 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
 
+import type { Provider } from '@/data/types';
+
 type SavedContextValue = {
-  savedIds: string[];
+  saved: Provider[];
   isSaved: (id: string) => boolean;
-  toggle: (id: string) => void;
+  toggle: (provider: Provider) => void;
 };
 
 const SavedContext = createContext<SavedContextValue | null>(null);
 
-/** In-memory for now; swap for the API/local storage once accounts land. */
+/** In-memory for now; swap for the API/local storage once accounts land. Keeps whole providers so Saved works offline of search. */
 export function SavedProvider({ children }: { children: ReactNode }) {
-  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [saved, setSaved] = useState<Provider[]>([]);
 
   const toggle = useCallback(
-    (id: string) =>
-      setSavedIds((ids) => (ids.includes(id) ? ids.filter((i) => i !== id) : [...ids, id])),
+    (provider: Provider) =>
+      setSaved((list) =>
+        list.some((p) => p.id === provider.id) ? list.filter((p) => p.id !== provider.id) : [...list, provider]
+      ),
     []
   );
 
   const value = useMemo(
-    () => ({ savedIds, toggle, isSaved: (id: string) => savedIds.includes(id) }),
-    [savedIds, toggle]
+    () => ({ saved, toggle, isSaved: (id: string) => saved.some((p) => p.id === id) }),
+    [saved, toggle]
   );
 
   return <SavedContext.Provider value={value}>{children}</SavedContext.Provider>;

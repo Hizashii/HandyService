@@ -35,7 +35,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      ["expo-location", { "locationWhenInUsePermission": "HelpDK uses your location to show service providers near you." }]
     ],
     "experiments": {
       "typedRoutes": true,
