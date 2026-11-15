@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from '@/auth/AuthContext';
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
+import { LocationProvider } from '@/hooks/use-location';
 import { SavedProvider } from '@/hooks/use-saved';
 
 SplashScreen.preventAutoHideAsync();
@@ -36,24 +37,26 @@ function RootNavigator() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <SavedProvider>
-        <AnimatedSplashOverlay />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Protected guard={isAuthenticated} redirectTo="/login">
-            <Stack.Screen name="(tabs)" />
-            <Stack.Screen
-              name="provider/[id]"
-              options={{ headerShown: true, headerBackTitle: 'Back' }}
-            />
-            <Stack.Screen name="profile" />
-          </Stack.Protected>
-          <Stack.Protected guard={!isAuthenticated}>
-            <Stack.Screen name="login" options={{ presentation: 'modal' }} />
-            <Stack.Screen name="register" options={{ presentation: 'modal' }} />
-          </Stack.Protected>
-        </Stack>
-        <PortalHost />
-      </SavedProvider>
+      <LocationProvider>
+        <SavedProvider>
+          <AnimatedSplashOverlay />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Protected guard={isAuthenticated} redirectTo="/login">
+              <Stack.Screen name="(tabs)" />
+              <Stack.Screen
+                name="provider/[id]"
+                options={{ headerShown: true, headerBackTitle: 'Back' }}
+              />
+              <Stack.Screen name="profile" />
+            </Stack.Protected>
+            <Stack.Protected guard={!isAuthenticated}>
+              <Stack.Screen name="login" options={{ presentation: 'modal' }} />
+              <Stack.Screen name="register" options={{ presentation: 'modal' }} />
+            </Stack.Protected>
+          </Stack>
+          <PortalHost />
+        </SavedProvider>
+      </LocationProvider>
     </ThemeProvider>
   );
 }

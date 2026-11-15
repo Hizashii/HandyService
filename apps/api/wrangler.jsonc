@@ -10,13 +10,14 @@
       "database_id": "00d8955e-cde2-4553-a754-d797a9308b80",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "vars": {
+    // Comma-separated ISO country codes the /api/geocode endpoint is limited to.
+    "GEOCODE_COUNTRIES": "dk"
+  }
   // "compatibility_flags": [
   //   "nodejs_compat"
   // ],
-  // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
   // "kv_namespaces": [
   //   {
   //     "binding": "MY_KV_NAMESPACE",
@@ -27,13 +28,6 @@
   //   {
   //     "binding": "MY_BUCKET",
   //     "bucket_name": "my-bucket"
-  //   }
-  // ],
-  // "d1_databases": [
-  //   {
-  //     "binding": "MY_DB",
-  //     "database_name": "my-database",
-  //     "database_id": ""
   //   }
   // ],
   // "ai": {

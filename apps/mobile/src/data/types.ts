@@ -14,21 +14,26 @@ export type SourceRating = {
   source: string;
   rating: number; // 0-5
   reviewCount: number;
-  url?: string;
+  url: string | null;
 };
 
+/** Mirrors the API's provider shape (apps/api/src/db.ts). */
 export type Provider = {
   id: string;
+  source: string;
   name: string;
   categories: CategoryId[];
-  description: string;
-  city: string;
-  distanceKm: number;
-  /** 1 = budget, 2 = mid, 3 = premium. Currency-neutral on purpose. */
-  priceLevel: 1 | 2 | 3;
-  /** Free-text price info as found when scraping, if any. */
-  priceNote?: string;
-  phone?: string;
-  website?: string;
+  lat: number;
+  lng: number;
+  city: string | null;
+  address: string | null;
+  phone: string | null;
+  website: string | null;
   ratings: SourceRating[];
+  /** Straight-line distance from the user's location, when known. */
+  distanceKm?: number;
 };
+
+export type Coords = { lat: number; lng: number };
+
+export type Place = Coords & { name: string; label?: string };
