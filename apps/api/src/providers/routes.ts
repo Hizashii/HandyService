@@ -1,11 +1,21 @@
 import type { D1Database } from '@cloudflare/workers-types'
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { z } from 'zod'
 
 import { CATEGORY_IDS, isCategoryId, type CategoryId } from '../categories'
-import { EXPIRE_MS, getProviderById, isAreaFresh, saveArea, searchNearby } from './db'
+import {
+  EXPIRE_MS,
+  contactCandidates,
+  getProviderById,
+  isAreaFresh,
+  saveArea,
+  saveSiteContacts,
+  searchNearby,
+  upsertProviders,
+} from './db'
 import { snapToCell } from '../geo'
 import { fetchProviders } from '../sources/overpass'
+import { fetchSiteContacts } from '../sources/website-contacts'
 import type { AppEnv } from '../types'
 
 /** Users only ever see providers this close (km). Keeps results local: Esbjerg never gets Copenhagen. */
@@ -14,6 +24,18 @@ const DEFAULT_RADIUS_KM = 25
 const MAX_RESULTS = 100
 /** Upstream area fetched around a cell centre. Must cover max radius + the distance a user can be from their cell centre. */
 const FETCH_RADIUS_KM = 35
+/** First, small look around the user's exact position so results can be shown while the full area loads. */
+const QUICK_RADIUS_KM = 8
+const QUICK_TIMEOUT_MS = 20_000
+/**
+ * Cloudflare cancels background (waitUntil) work 30s after the response is sent, and the response goes
+ * out as soon as the quick look finishes. Cap the full fetch so it ends, and saves, inside that window
+ * instead of being cut off mid-way; if it cannot finish in time, the quick results stay cached and the
+ * next search tries again.
+ */
+const FULL_TIMEOUT_MS = 28_000
+/** After a failed refresh, serve saved data for this long before asking the upstream again. */
+const RETRY_AFTER_FAILURE_MS = 60_000
 
 const coord = (min: number, max: number) => z.coerce.number().min(min).max(max)
 
@@ -32,29 +54,57 @@ const searchQuery = z.object({
  * identical requests share one fetch instead of each starting their own.
  */
 const inFlight = new Map<string, Promise<void>>()
+/** When the last refresh of an area failed, so a failing upstream is not hammered by every poll. */
+const failedAt = new Map<string, number>()
+
+/**
+ * Websites being read for contact details right now, keyed by provider id. Keeps repeated polls from
+ * reading the same site twice, and tells the app to keep polling until the details have landed.
+ */
+const enriching = new Map<string, Promise<void>>()
+/** Sites read per search. Each costs up to three outbound requests, and Workers cap those per invocation. */
+const MAX_SITES_PER_SEARCH = 12
+const SITE_CONCURRENCY = 4
+
+/** Reads the websites of providers missing a phone or email, a few at a time. Never throws. */
+async function enrichContacts(db: D1Database, sites: { id: string; website: string }[]) {
+  const queue = [...sites]
+  const worker = async () => {
+    for (let site = queue.shift(); site; site = queue.shift()) {
+      try {
+        await saveSiteContacts(db, site.id, await fetchSiteContacts(site.website), Date.now())
+      } catch (err) {
+        console.error('Contact enrichment failed', err)
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(SITE_CONCURRENCY, queue.length) }, worker))
+}
+
+/** A single category runs every rule for it; the broad all-categories search uses only the fast tag rules. */
+const isExhaustive = (categoryId: CategoryId | undefined) => categoryId !== undefined
 
 function refreshArea(
   db: D1Database,
   cell: { key: string; lat: number; lng: number },
+  flightKey: string,
   cacheKey: string,
   categoryId: CategoryId | undefined,
   now: number
 ): Promise<void> {
-  const flightKey = `${cell.key}|${cacheKey}`
   const existing = inFlight.get(flightKey)
   if (existing) return existing
 
   const run = (async () => {
     const fetchedCategories = categoryId ? [categoryId] : CATEGORY_IDS
-    // A single category runs every rule for it. The broad all-categories search (the Home screen)
-    // uses only the fast tag rules, which keeps it to one query.
-    const exhaustive = categoryId !== undefined
+    const exhaustive = isExhaustive(categoryId)
     const { providers, complete } = await fetchProviders(
       fetchedCategories,
       cell.lat,
       cell.lng,
       FETCH_RADIUS_KM,
-      exhaustive
+      exhaustive,
+      { timeoutMs: FULL_TIMEOUT_MS }
     )
     await saveArea(db, cell.key, cacheKey, providers, now, {
       categories: fetchedCategories,
@@ -64,10 +114,47 @@ function refreshArea(
       // Without the name rules "not returned" does not mean "gone", so only exhaustive fetches may delete.
       complete: complete && exhaustive,
     })
-  })().finally(() => inFlight.delete(flightKey))
+  })()
+    .then(
+      () => {
+        failedAt.delete(flightKey)
+      },
+      (err) => {
+        failedAt.set(flightKey, Date.now())
+        throw err
+      }
+    )
+    .finally(() => inFlight.delete(flightKey))
 
   inFlight.set(flightKey, run)
   return run
+}
+
+/** A small, fast fetch around the user so the first results do not wait for the whole area. */
+async function quickLook(
+  db: D1Database,
+  at: { lat: number; lng: number },
+  categoryId: CategoryId | undefined,
+  now: number
+): Promise<void> {
+  const { providers } = await fetchProviders(
+    categoryId ? [categoryId] : CATEGORY_IDS,
+    at.lat,
+    at.lng,
+    QUICK_RADIUS_KM,
+    isExhaustive(categoryId),
+    { timeoutMs: QUICK_TIMEOUT_MS }
+  )
+  await upsertProviders(db, providers, now)
+}
+
+/** Keep a promise running after the response is sent (Workers cut off work that is not registered). */
+function runInBackground(c: Context<AppEnv>, task: Promise<unknown>) {
+  try {
+    c.executionCtx.waitUntil(task)
+  } catch {
+    // No execution context (e.g. in tests): the promise still runs to completion on its own.
+  }
 }
 
 /** Service providers near a location: GET /api/providers and GET /api/providers/:id */
@@ -82,18 +169,44 @@ providerRoutes.get('/', async (c) => {
   }
   const categoryId = category as CategoryId | undefined
 
-  // Make sure the area around the user has been fetched recently; otherwise pull it from OSM.
   const cell = snapToCell(lat, lng)
   const cacheKey = categoryId ?? 'all'
+  const flightKey = `${cell.key}|${cacheKey}`
   const now = Date.now()
+
+  // `refreshing`: the full area is still being fetched in the background; the app asks again shortly.
+  let refreshing = false
   let upstreamFailed = false
   if (!(await isAreaFresh(c.env.DB, cell.key, cacheKey, now))) {
-    try {
-      await refreshArea(c.env.DB, cell, cacheKey, categoryId, now)
-    } catch (err) {
-      // Serve whatever we already have (possibly stale) rather than failing the search.
-      console.error('Upstream fetch failed', err)
-      upstreamFailed = true
+    const lastFailure = failedAt.get(flightKey)
+    if (lastFailure !== undefined && now - lastFailure < RETRY_AFTER_FAILURE_MS) {
+      upstreamFailed = true // serve what we have instead of asking a struggling upstream again
+    } else {
+      const alreadyRunning = inFlight.has(flightKey)
+      const full = refreshArea(c.env.DB, cell, flightKey, cacheKey, categoryId, now).then(
+        () => true,
+        (err) => {
+          console.error('Upstream fetch failed', err)
+          return false
+        }
+      )
+      runInBackground(c, full)
+      if (!alreadyRunning) {
+        // Answer as soon as either the quick look around the user or the whole area is done.
+        const quick = quickLook(c.env.DB, { lat, lng }, categoryId, now).then(
+          () => 'quick' as const,
+          (err) => {
+            console.error('Quick fetch failed', err)
+            return 'quick' as const
+          }
+        )
+        const first = await Promise.race([quick, full.then((ok) => (ok ? ('full' as const) : ('full-failed' as const)))])
+        // If the whole area failed first, the nearby results may still be on their way: do not report
+        // "unavailable" before the quick look has had its say.
+        if (first === 'full-failed') await quick
+      }
+      refreshing = inFlight.has(flightKey)
+      upstreamFailed = !refreshing && failedAt.has(flightKey)
     }
   }
 
@@ -110,7 +223,20 @@ providerRoutes.get('/', async (c) => {
   if (upstreamFailed && providers.length === 0) {
     return c.json({ error: 'Provider data is temporarily unavailable. Please try again shortly.' }, 503)
   }
-  return c.json({ providers, radiusKm: radius, stale: upstreamFailed })
+
+  // Fill in missing phone numbers and emails from the nearest providers' own websites, in the
+  // background. The app keeps polling while this runs, so the details appear without a new search.
+  const sites = (await contactCandidates(c.env.DB, providers.map((p) => p.id), now, MAX_SITES_PER_SEARCH)).filter(
+    (s) => !enriching.has(s.id)
+  )
+  if (sites.length > 0) {
+    const run = enrichContacts(c.env.DB, sites).finally(() => sites.forEach((s) => enriching.delete(s.id)))
+    sites.forEach((s) => enriching.set(s.id, run))
+    runInBackground(c, run)
+  }
+  const enrichingNow = providers.some((p) => enriching.has(p.id))
+
+  return c.json({ providers, radiusKm: radius, stale: upstreamFailed, refreshing: refreshing || enrichingNow })
 })
 
 providerRoutes.get('/:id', async (c) => {

@@ -2,6 +2,7 @@ import { Link } from 'expo-router';
 import { Heart, MapPin } from 'lucide-react-native';
 import { Pressable, View } from 'react-native';
 
+import { ContactActions } from '@/components/contact-actions';
 import { RatingBadge } from '@/components/rating-stars';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -52,6 +53,8 @@ export function ProviderCard({ provider }: { provider: Provider }) {
               <Badge key={id}>{getCategory(id)?.label ?? id}</Badge>
             ))}
           </View>
+
+          <ContactActions provider={provider} variant="compact" />
 
           {where ? (
             <View className="flex-row items-center gap-1">
