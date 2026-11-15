@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" role="img" aria-labelledby="t d">
+  <title id="t">HelpDK demo</title>
+  <desc id="d">An animated walkthrough: location is found, the first providers appear in about three seconds, more arrive while the list is open, phone numbers and emails fill in from provider websites, then the user taps Call. Illustration with sample data.</desc>
+  <defs>
+    <filter id="sh" x="-20%" y="-10%" width="140%" height="130%"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#0b3d2e" flood-opacity="0.22"/></filter>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eaf6f0"/><stop offset="1" stop-color="#fafaf7"/></linearGradient>
+    <clipPath id="clip"><rect width="300" height="580" rx="34"/></clipPath>
+  </defs>
+  <style>
+    text { font-family: system-ui, "Segoe UI", Helvetica, Arial, sans-serif; fill: #171c19; }
+    .m { fill: #747d76; } .g { fill: #087f5b; }
+    @media (prefers-reduced-motion: reduce) { animate, animateTransform { display: none; } g[opacity="0"] { opacity: 1; } }
+  </style>
+  <rect width="1000" height="640" fill="url(#bg)"/>
+
+  <g transform="translate(70,30)">
+    <g filter="url(#sh)"><rect width="300" height="580" rx="34" fill="#fafaf7" stroke="#171c19" stroke-width="7"/></g>
+    <g clip-path="url(#clip)">
+      <!-- location bar always visible -->
+      <rect x="20" y="22" width="260" height="38" rx="12" fill="#fff" stroke="#e6eae5" stroke-width="1.5"/>
+      <path d="M40 33 c-5 0 -8 4 -8 8 c0 6 8 12 8 12 s8 -6 8 -12 c0 -4 -3 -8 -8 -8z" class="g"/><circle cx="40" cy="41" r="3" fill="#fff"/>
+      <text x="58" y="45" font-size="11.500" font-weight="700">Esbjerg</text><text x="108" y="45" font-size="11" class="m">within 25 km</text>
+
+      <!-- 0-3s: searching -->
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.0187;0.1875;0.2062;1" values="0;1;1;0;0"/>
+        <circle cx="150" cy="240" r="16" fill="none" stroke="#087f5b" stroke-width="3.500" stroke-dasharray="60 40"><animateTransform attributeName="transform" type="rotate" from="0 150 240" to="360 150 240" dur="1s" repeatCount="indefinite"/></circle>
+        <text x="150" y="290" font-size="12" class="m" text-anchor="middle">Finding providers near you...</text></g>
+
+      <!-- 3s+: results -->
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.1875;0.2062;1" values="0;0;1;1"/><text x="24" y="86" font-size="10.500" class="m">Nearest first</text></g>
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.1875;0.2062;0.4375;0.4562;1" values="0;0;1;1;0;0"/><text x="276" y="86" font-size="10.500" font-weight="700" class="g" text-anchor="end">15 results</text></g>
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.4375;0.4562;1" values="0;0;1;1"/><text x="276" y="86" font-size="10.500" font-weight="700" class="g" text-anchor="end">21 results</text></g>
+
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.1875;0.2062;1" values="0;0;1;1"/>
+  <g transform="translate(20,98)">
+    <rect width="260" height="98" rx="16" fill="#fff" stroke="#e6eae5" stroke-width="1.5"/>
+    <text x="14" y="23" font-size="13" font-weight="800">Nordstrand Tømrer</text>
+    <rect x="14" y="33" width="62" height="16" rx="8" fill="#e7f6f0"/><text x="45" y="44.500" font-size="9" font-weight="700" class="g" text-anchor="middle">Carpentry</text>
+    <rect x="14" y="58" width="56" height="26" rx="13" fill="#087f5b"/><text x="42" y="75" font-size="10" font-weight="700" style="fill:#fff" text-anchor="middle">Call</text><rect x="76" y="58" width="74" height="26" rx="13" fill="#fff" stroke="#c9d1cb" stroke-width="1.5"/><text x="113" y="75" font-size="10" font-weight="700" style="fill:#171c19" text-anchor="middle">Website</text>
+    <text x="246" y="90" font-size="9.500" class="m" text-anchor="end">1.2 km</text>
+  </g></g>
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.2125;0.2312;1" values="0;0;1;1"/>
+  <g transform="translate(20,206)">
+    <rect width="260" height="98" rx="16" fill="#fff" stroke="#e6eae5" stroke-width="1.5"/>
+    <text x="14" y="23" font-size="13" font-weight="800">Havnens Snedkeri</text>
+    <rect x="14" y="33" width="62" height="16" rx="8" fill="#e7f6f0"/><text x="45" y="44.500" font-size="9" font-weight="700" class="g" text-anchor="middle">Carpentry</text>
+    <rect x="14" y="58" width="74" height="26" rx="13" fill="#fff" stroke="#c9d1cb" stroke-width="1.5"/><text x="51" y="75" font-size="10" font-weight="700" style="fill:#171c19" text-anchor="middle">Website</text>
+    <text x="246" y="90" font-size="9.500" class="m" text-anchor="end">2.8 km</text>
+  </g></g>
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.2375;0.2562;1" values="0;0;1;1"/>
+  <g transform="translate(20,314)">
+    <rect width="260" height="98" rx="16" fill="#fff" stroke="#e6eae5" stroke-width="1.5"/>
+    <text x="14" y="23" font-size="13" font-weight="800">Kjær Træ og Montage</text>
+    <rect x="14" y="33" width="62" height="16" rx="8" fill="#e7f6f0"/><text x="45" y="44.500" font-size="9" font-weight="700" class="g" text-anchor="middle">Carpentry</text>
+    <rect x="14" y="58" width="74" height="26" rx="13" fill="#fff" stroke="#c9d1cb" stroke-width="1.5"/><text x="51" y="75" font-size="10" font-weight="700" style="fill:#171c19" text-anchor="middle">Website</text>
+    <text x="246" y="90" font-size="9.500" class="m" text-anchor="end">4.1 km</text>
+  </g></g>
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.4375;0.4562;1" values="0;0;1;1"/>
+  <g transform="translate(20,422)">
+    <rect width="260" height="98" rx="16" fill="#fff" stroke="#e6eae5" stroke-width="1.5"/>
+    <text x="14" y="23" font-size="13" font-weight="800">Vestkyst Byg</text>
+    <rect x="14" y="33" width="62" height="16" rx="8" fill="#e7f6f0"/><text x="45" y="44.500" font-size="9" font-weight="700" class="g" text-anchor="middle">Carpentry</text>
+    <rect x="14" y="58" width="74" height="26" rx="13" fill="#fff" stroke="#c9d1cb" stroke-width="1.5"/><text x="51" y="75" font-size="10" font-weight="700" style="fill:#171c19" text-anchor="middle">Website</text>
+    <text x="246" y="90" font-size="9.500" class="m" text-anchor="end">6.3 km</text>
+  </g></g>
+
+      <!-- 9-11s: contacts fill in from websites -->
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.5625;0.5813;1" values="0;0;1;1"/><g transform="translate(20,98)"><rect x="156" y="58" width="58" height="26" rx="13" fill="#e6eae5"/><text x="185" y="75" font-size="10" font-weight="700" style="fill:#171c19" text-anchor="middle">Email</text></g></g>
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.6125;0.6313;1" values="0;0;1;1"/><g transform="translate(20,206)"><rect x="94" y="58" width="58" height="26" rx="13" fill="#e6eae5"/><text x="123" y="75" font-size="10" font-weight="700" style="fill:#171c19" text-anchor="middle">Email</text></g></g>
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.6625;0.6813;1" values="0;0;1;1"/><g transform="translate(20,314)"><rect x="94" y="58" width="58" height="26" rx="13" fill="#e6eae5"/><text x="123" y="75" font-size="10" font-weight="700" style="fill:#171c19" text-anchor="middle">Email</text></g></g>
+
+      <!-- still searching line (3s to 9s) -->
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.1875;0.2062;0.5625;0.5813;1" values="0;0;1;1;0;0"/>
+        <circle cx="64" cy="536" r="6" fill="none" stroke="#087f5b" stroke-width="2" stroke-dasharray="20 10"><animateTransform attributeName="transform" type="rotate" from="0 64 536" to="360 64 536" dur="1s" repeatCount="indefinite"/></circle>
+        <text x="78" y="540" font-size="10.500" class="m">Still searching for more nearby...</text></g>
+
+      <!-- tap + toast -->
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.8125;0.8313;0.8875;0.9063;1" values="0;0;1;1;0;0"/><circle cx="62" cy="169" r="8" fill="#087f5b" opacity="0.35"><animate attributeName="r" values="8;28;8" dur="1.2s" repeatCount="indefinite"/></circle></g>
+      <g opacity="0" ><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.8375;0.8563;1" values="0;0;1;1"/>
+        <rect x="30" y="486" width="240" height="46" rx="14" fill="#171c19"/>
+        <text x="150" y="506" font-size="11" font-weight="700" style="fill:#fff" text-anchor="middle">Calling Nordstrand Tømrer</text>
+        <text x="150" y="522" font-size="10" style="fill:#a7f3d0" text-anchor="middle">+45 75 12 34 56</text></g>
+    </g>
+  </g>
+
+  
+  <g transform="translate(430,40)">
+    <rect width="520" height="104" rx="18" fill="#fff" stroke="#e6eae5" stroke-width="1.5" opacity="0.7"/>
+    <g opacity="0"><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.0187;0.1875;0.2062;1" values="0;1;1;0;0"/><rect width="520" height="104" rx="18" fill="#e7f6f0" stroke="#087f5b" stroke-width="2.500"/></g>
+    <circle cx="44" cy="52" r="20" fill="#087f5b"/><text x="44" y="59" font-size="20" font-weight="800" fill="#fff" text-anchor="middle" style="fill:#fff">1</text>
+    <text x="82" y="44" font-size="19" font-weight="800">Find</text>
+    <text x="82" y="68" font-size="14" fill="#4b554e">Your location is read, or you type a town.</text>
+    <text x="82" y="88" font-size="14" fill="#4b554e">Only providers within 25 km are shown.</text>
+  </g>
+  
+  <g transform="translate(430,170)">
+    <rect width="520" height="104" rx="18" fill="#fff" stroke="#e6eae5" stroke-width="1.5" opacity="0.7"/>
+    <g opacity="0"><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.1875;0.2062;0.5625;0.5813;1" values="0;0;1;1;0;0"/><rect width="520" height="104" rx="18" fill="#e7f6f0" stroke="#087f5b" stroke-width="2.500"/></g>
+    <circle cx="44" cy="52" r="20" fill="#087f5b"/><text x="44" y="59" font-size="20" font-weight="800" fill="#fff" text-anchor="middle" style="fill:#fff">2</text>
+    <text x="82" y="44" font-size="19" font-weight="800">Stream</text>
+    <text x="82" y="68" font-size="14" fill="#4b554e">The first results show in about 3 seconds.</text>
+    <text x="82" y="88" font-size="14" fill="#4b554e">The rest keeps loading while you browse.</text>
+  </g>
+  
+  <g transform="translate(430,300)">
+    <rect width="520" height="104" rx="18" fill="#fff" stroke="#e6eae5" stroke-width="1.5" opacity="0.7"/>
+    <g opacity="0"><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.5625;0.5813;0.8125;0.8313;1" values="0;0;1;1;0;0"/><rect width="520" height="104" rx="18" fill="#e7f6f0" stroke="#087f5b" stroke-width="2.500"/></g>
+    <circle cx="44" cy="52" r="20" fill="#087f5b"/><text x="44" y="59" font-size="20" font-weight="800" fill="#fff" text-anchor="middle" style="fill:#fff">3</text>
+    <text x="82" y="44" font-size="19" font-weight="800">Enrich</text>
+    <text x="82" y="68" font-size="14" fill="#4b554e">Phone numbers and emails are filled in from</text>
+    <text x="82" y="88" font-size="14" fill="#4b554e">each provider's own public website.</text>
+  </g>
+  
+  <g transform="translate(430,430)">
+    <rect width="520" height="104" rx="18" fill="#fff" stroke="#e6eae5" stroke-width="1.5" opacity="0.7"/>
+    <g opacity="0"><animate attributeName="opacity" dur="16s" repeatCount="indefinite" calcMode="linear" keyTimes="0;0.8125;0.8313;1" values="0;0;1;1"/><rect width="520" height="104" rx="18" fill="#e7f6f0" stroke="#087f5b" stroke-width="2.500"/></g>
+    <circle cx="44" cy="52" r="20" fill="#087f5b"/><text x="44" y="59" font-size="20" font-weight="800" fill="#fff" text-anchor="middle" style="fill:#fff">4</text>
+    <text x="82" y="44" font-size="19" font-weight="800">Contact</text>
+    <text x="82" y="68" font-size="14" fill="#4b554e">One tap to call or email. No sign-up wall,</text>
+    <text x="82" y="88" font-size="14" fill="#4b554e">no middleman.</text>
+  </g>
+
+  <text x="690" y="590" font-size="12" class="m" text-anchor="middle">Animated illustration with fictional sample data</text>
+</svg>
