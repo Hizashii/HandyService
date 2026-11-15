@@ -141,16 +141,27 @@ providerRoutes.get('/', async (c) => {
       upstreamFailed = true // serve what we have instead of asking a struggling upstream again
     } else {
       const alreadyRunning = inFlight.has(flightKey)
-      const full = refreshArea(c.env.DB, cell, flightKey, cacheKey, categoryId, now).catch((err) => {
-        console.error('Upstream fetch failed', err)
-      })
+      const full = refreshArea(c.env.DB, cell, flightKey, cacheKey, categoryId, now).then(
+        () => true,
+        (err) => {
+          console.error('Upstream fetch failed', err)
+          return false
+        }
+      )
       runInBackground(c, full)
       if (!alreadyRunning) {
         // Answer as soon as either the quick look around the user or the whole area is done.
-        const quick = quickLook(c.env.DB, { lat, lng }, categoryId, now).catch((err) => {
-          console.error('Quick fetch failed', err)
-        })
-        await Promise.race([quick, full])
+        const quick = quickLook(c.env.DB, { lat, lng }, categoryId, now).then(
+          () => 'quick' as const,
+          (err) => {
+            console.error('Quick fetch failed', err)
+            return 'quick' as const
+          }
+        )
+        const first = await Promise.race([quick, full.then((ok) => (ok ? ('full' as const) : ('full-failed' as const)))])
+        // If the whole area failed first, the nearby results may still be on their way: do not report
+        // "unavailable" before the quick look has had its say.
+        if (first === 'full-failed') await quick
       }
       refreshing = inFlight.has(flightKey)
       upstreamFailed = !refreshing && failedAt.has(flightKey)

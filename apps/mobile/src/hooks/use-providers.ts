@@ -62,13 +62,18 @@ export function useProviders({ category, q }: { category?: string; q?: string } 
           if (!res.refreshing) return;
         } catch (err) {
           if (signal.aborted) return;
-          setResult({
-            key,
-            providers: [],
-            error: err instanceof Error ? err.message : 'Something went wrong',
-            stale: false,
-            refreshing: false,
-          });
+          // A failed later poll must not throw away results the user is already looking at.
+          setResult((prev) =>
+            prev?.key === key && prev.providers.length > 0
+              ? { ...prev, refreshing: false }
+              : {
+                  key,
+                  providers: [],
+                  error: err instanceof Error ? err.message : 'Something went wrong',
+                  stale: false,
+                  refreshing: false,
+                }
+          );
           return;
         }
         await wait(POLL_MS, signal);
