@@ -10,6 +10,7 @@ import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 
 import { BrandMark } from '@/components/layout/brand-mark';
+import { LegalLinks } from '@/components/legal/legal-links';
 import { Text } from '@/components/ui/text';
 import { Image } from 'expo-image';
 import { photography } from '@/lib/theme/photography';
@@ -51,6 +52,7 @@ export function AuthShell({
               </View>
             </View>
             <View className="gap-4">{children}</View>
+            <LegalLinks />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
