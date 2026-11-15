@@ -9,7 +9,7 @@ import { ThemedText } from '@/components/themed-text';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { signIn, error: authError, clearError } = useAuth();
+  const { signIn, error: authError, restoreError, retryRestore, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +52,14 @@ export default function LoginScreen() {
         secureTextEntry
         value={password}
       />
-      <AuthError message={error ?? authError} />
+      <AuthError message={error ?? authError ?? restoreError} />
+      {restoreError ? (
+        <AuthButton
+          label="Retry session restore"
+          variant="secondary"
+          onPress={() => void retryRestore()}
+        />
+      ) : null}
       <AuthButton label="Sign in" loading={loading} onPress={() => void submit()} />
       <Link href="/register" asChild>
         <Pressable style={authStyles.linkRow}>

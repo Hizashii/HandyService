@@ -5,6 +5,9 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "db:create": "wrangler d1 create helpdk",
+    "db:migrate:local": "wrangler d1 migrations apply helpdk --local",
+    "db:migrate:remote": "wrangler d1 migrations apply helpdk --remote",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

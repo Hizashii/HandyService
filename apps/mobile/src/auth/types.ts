@@ -8,7 +8,7 @@ export type User = {
   updated_at: number;
 };
 
-export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
+export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated' | 'recoverable-error';
 
 export type AuthCredentials = {
   email: string;

@@ -5,9 +5,9 @@ import { createSession, createUser, deleteSessionByToken, findUserByEmail } from
 import {
   LOGIN_RATE_LIMIT,
   REGISTER_RATE_LIMIT,
-  allowAttempt,
+  allowAttempts,
   clearAttempts,
-  rateLimitKey,
+  rateLimitKeys,
 } from './rate-limit';
 import { loginSchema, normalizeEmail, registerSchema } from './schemas';
 import { requireAuth } from './middleware';
@@ -22,8 +22,8 @@ authRoutes.post('/register', async (c) => {
   if (!parsed.success) return c.json({ error: 'Invalid registration details' }, 400);
 
   const email = normalizeEmail(parsed.data.email);
-  const key = rateLimitKey(c, 'register', email);
-  if (!allowAttempt(key, REGISTER_RATE_LIMIT.max, REGISTER_RATE_LIMIT.windowMs)) {
+  const limits = rateLimitKeys(c, 'register', email, REGISTER_RATE_LIMIT);
+  if (!(await allowAttempts(c.env.DB, limits))) {
     return c.json({ error: 'Too many attempts. Try again later.' }, 429);
   }
 
@@ -35,7 +35,7 @@ authRoutes.post('/register', async (c) => {
   try {
     const user = await createUser(c.env.DB, email, passwordHash, parsed.data.role);
     const session = await createSession(c.env.DB, user.id);
-    clearAttempts(key);
+    await clearAttempts(c.env.DB, limits);
     return c.json(
       { user: toPublicUser(user), sessionToken: session.token, expiresAt: session.expiresAt },
       201,
@@ -51,8 +51,8 @@ authRoutes.post('/login', async (c) => {
   if (!parsed.success) return c.json({ error: 'Invalid email or password' }, 400);
 
   const email = normalizeEmail(parsed.data.email);
-  const key = rateLimitKey(c, 'login', email);
-  if (!allowAttempt(key, LOGIN_RATE_LIMIT.max, LOGIN_RATE_LIMIT.windowMs)) {
+  const limits = rateLimitKeys(c, 'login', email, LOGIN_RATE_LIMIT);
+  if (!(await allowAttempts(c.env.DB, limits))) {
     return c.json({ error: 'Too many attempts. Try again later.' }, 429);
   }
 
@@ -64,7 +64,7 @@ authRoutes.post('/login', async (c) => {
   if (!user || !passwordMatches) return c.json({ error: 'Invalid email or password' }, 401);
 
   const session = await createSession(c.env.DB, user.id);
-  clearAttempts(key);
+  await clearAttempts(c.env.DB, limits);
   return c.json({ user: toPublicUser(user), sessionToken: session.token, expiresAt: session.expiresAt });
 });
 

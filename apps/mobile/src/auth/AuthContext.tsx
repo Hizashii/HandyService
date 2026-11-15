@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 import * as authApi from './api';
+import { restoreSessionState } from './sessionRecovery';
 import { clearStoredSessionToken, getStoredSessionToken, storeSessionToken } from './storage';
 import type { AuthCredentials, AuthStatus, RegistrationInput, User } from './types';
 
@@ -17,9 +18,11 @@ type AuthContextValue = {
   user: User | null;
   isLoading: boolean;
   error: string | null;
+  restoreError: string | null;
   signIn: (input: AuthCredentials) => Promise<void>;
   signUp: (input: RegistrationInput) => Promise<void>;
   signOut: () => Promise<void>;
+  retryRestore: () => Promise<void>;
   clearError: () => void;
 };
 
@@ -29,23 +32,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   const restoreSession = useCallback(async () => {
-    const token = await getStoredSessionToken();
-    if (!token) {
-      setStatus('unauthenticated');
-      return;
-    }
-
-    try {
-      const response = await authApi.getMe(token);
-      setUser(response.user);
-      setStatus('authenticated');
-    } catch {
-      await clearStoredSessionToken();
-      setUser(null);
-      setStatus('unauthenticated');
-    }
+    setStatus('loading');
+    setRestoreError(null);
+    const result = await restoreSessionState({
+      getToken: getStoredSessionToken,
+      clearToken: clearStoredSessionToken,
+      getMe: authApi.getMe,
+    });
+    setUser(result.user);
+    setRestoreError(result.error);
+    setStatus(result.status);
   }, []);
 
   useEffect(() => {
@@ -56,10 +55,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const signIn = useCallback(async (input: AuthCredentials) => {
     setError(null);
+    setRestoreError(null);
     try {
       const response = await authApi.login(input);
       await storeSessionToken(response.sessionToken);
       setUser(response.user);
+      setRestoreError(null);
       setStatus('authenticated');
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : 'Unable to sign in.';
@@ -70,10 +71,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const signUp = useCallback(async (input: RegistrationInput) => {
     setError(null);
+    setRestoreError(null);
     try {
       const response = await authApi.register(input);
       await storeSessionToken(response.sessionToken);
       setUser(response.user);
+      setRestoreError(null);
       setStatus('authenticated');
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : 'Unable to create your account.';
@@ -88,6 +91,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setUser(null);
     setStatus('unauthenticated');
     setError(null);
+    setRestoreError(null);
     if (token) {
       try {
         await authApi.logout(token);
@@ -103,12 +107,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
       user,
       isLoading: status === 'loading',
       error,
+      restoreError,
       signIn,
       signUp,
       signOut,
+      retryRestore: restoreSession,
       clearError: () => setError(null),
     }),
-    [error, signIn, signOut, signUp, status, user],
+    [error, restoreError, restoreSession, signIn, signOut, signUp, status, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
