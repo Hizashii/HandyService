@@ -49,15 +49,17 @@ export function ProviderCard({ provider }: { provider: Provider }) {
             ))}
           </View>
 
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-1">
-              <Icon as={MapPin} size={14} className="text-muted-foreground" />
-              <Text variant="muted">
-                {provider.city} · {provider.distanceKm.toFixed(1)} km
-              </Text>
-            </View>
-            {provider.priceNote ? <Text variant="small">{provider.priceNote}</Text> : null}
+          <View className="flex-row items-center gap-1">
+            <Icon as={MapPin} size={14} className="text-muted-foreground" />
+            <Text variant="muted" className="flex-1" numberOfLines={1}>
+              {provider.city} · {provider.distanceKm.toFixed(1)} km
+            </Text>
           </View>
+          {provider.priceNote ? (
+            <Text variant="small" className="font-medium">
+              {provider.priceNote}
+            </Text>
+          ) : null}
         </Card>
       </Pressable>
     </Link>

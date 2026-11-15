@@ -6,7 +6,7 @@ export function Input({ className, ...props }: TextInputProps & { className?: st
   return (
     <TextInput
       className={cn(
-        'h-11 flex-1 rounded-md border border-input bg-background px-3 text-base text-foreground',
+        'h-11 rounded-md border border-input bg-background px-3 text-base text-foreground',
         className
       )}
       placeholderTextColor="#8a8a8a"

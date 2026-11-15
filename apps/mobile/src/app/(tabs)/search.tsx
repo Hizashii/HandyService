@@ -73,7 +73,7 @@ export default function SearchScreen() {
           returnKeyType="search"
           className="pl-10"
         />
-        <View className="absolute left-3" pointerEvents="none">
+        <View className="absolute bottom-0 left-3 top-0 justify-center" pointerEvents="none">
           <Icon as={Search} size={18} className="text-muted-foreground" />
         </View>
       </View>
@@ -81,6 +81,7 @@ export default function SearchScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        className="grow-0"
         contentContainerClassName="gap-2">
         <Chip
           label="All"
@@ -100,6 +101,7 @@ export default function SearchScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        className="grow-0"
         contentContainerClassName="items-center gap-2">
         <Text variant="muted">Sort by</Text>
         {sorts.map((s) => (
