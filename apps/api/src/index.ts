@@ -1,9 +1,18 @@
-import { Hono } from 'hono'
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 
-const app = new Hono()
+import { authRoutes } from './auth/routes';
+import { taskRoutes, offerRoutes } from './tasks/routes';
+import type { AppEnv } from './types';
 
-app.get('/', (c) => {
-  return c.text('Hello Hono!')
-})
+const app = new Hono<AppEnv>();
 
-export default app
+app.use('/api/*', cors({ origin: '*' }));
+
+app.get('/', (c) => c.json({ name: 'HelpDK API', ok: true }));
+app.route('/api/auth', authRoutes);
+app.route('/api/tasks', taskRoutes);
+app.route('/api/offers', offerRoutes);
+
+export default app;
+export { app };

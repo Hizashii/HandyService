@@ -2,7 +2,15 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "api",
   "main": "src/index.ts",
-  "compatibility_date": "2026-11-15"
+  "compatibility_date": "2026-11-15",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "helpdk",
+      "database_id": "",
+      "migrations_dir": "migrations"
+    }
+  ]
   // "compatibility_flags": [
   //   "nodejs_compat"
   // ],
