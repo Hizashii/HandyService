@@ -1,34 +1,77 @@
-import { ActivityIndicator, Pressable, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { Alert } from 'heroui-native/alert';
+import { Button as HeroButton } from 'heroui-native/button';
+import { FieldError } from 'heroui-native/field-error';
+import { Input as HeroInput } from 'heroui-native/input';
+import { Label } from 'heroui-native/label';
+import { Spinner } from 'heroui-native/spinner';
+import { TextField } from 'heroui-native/text-field';
+import { KeyboardAvoidingView, Platform, ScrollView, View, type TextInputProps } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
 
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Spacing } from '@/constants/theme';
+import { BrandMark } from '@/components/layout/brand-mark';
+import { Text } from '@/components/ui/text';
 
 export function AuthShell({
   title,
   subtitle,
+  eyebrow,
   children,
 }: {
   title: string;
   subtitle: string;
+  eyebrow?: string;
   children: ReactNode;
 }) {
   return (
-    <ThemedView style={styles.screen}>
-      <View style={styles.content}>
-        <ThemedText type="subtitle">{title}</ThemedText>
-        <ThemedText themeColor="textSecondary" style={styles.subtitle}>
-          {subtitle}
-        </ThemedText>
-        {children}
-      </View>
-    </ThemedView>
+    <View className="flex-1 bg-background">
+      <KeyboardAvoidingView
+        className="flex-1"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 }}>
+          <View className="mx-auto w-full max-w-[520px] gap-6">
+            <View className="gap-8">
+              <View className="flex-row items-center justify-between">
+                <BrandMark compact />
+              </View>
+              <View className="gap-2">
+                {eyebrow ? <Text className="text-xs font-bold uppercase tracking-[3px] text-brand">{eyebrow}</Text> : null}
+                <Text variant="display" className="max-w-[360px]">
+                  {title}
+                </Text>
+                <Text className="max-w-[420px] text-base leading-6 text-text-secondary">{subtitle}</Text>
+              </View>
+            </View>
+            <View className="gap-4">{children}</View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
-export function AuthInput(props: TextInputProps) {
-  return <TextInput placeholderTextColor="#8c8c95" style={styles.input} {...props} />;
+export function AuthField({
+  label,
+  error,
+  children,
+}: {
+  label: string;
+  error?: string | null;
+  children: ReactNode;
+}) {
+  return (
+    <TextField isRequired isInvalid={Boolean(error)} className="gap-2">
+      <Label>{label}</Label>
+      {children}
+      {error ? <FieldError>{error}</FieldError> : null}
+    </TextField>
+  );
+}
+
+export function AuthInput({ className, ...props }: TextInputProps & { className?: string }) {
+  return <HeroInput {...props} className={`min-h-13 rounded-2xl border border-border bg-surface px-4 font-sans text-base ${className ?? ''}`} />;
 }
 
 export function AuthButton({
@@ -40,110 +83,46 @@ export function AuthButton({
   label: string;
   onPress: () => void;
   loading?: boolean;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'outline' | 'danger';
 }) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={loading}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        variant === 'secondary' && styles.secondaryButton,
-        pressed && styles.pressed,
-        loading && styles.disabled,
-      ]}>
-      {loading ? (
-        <ActivityIndicator color={variant === 'primary' ? '#ffffff' : '#3c87f7'} />
-      ) : (
-        <ThemedText style={variant === 'primary' ? styles.buttonText : styles.secondaryButtonText}>
-          {label}
-        </ThemedText>
-      )}
-    </Pressable>
+    <HeroButton
+      variant={variant}
+      size="lg"
+      isDisabled={loading}
+      onPress={() => {
+        void Haptics.selectionAsync();
+        onPress();
+      }}
+      className="min-h-13 rounded-2xl">
+      {loading ? <Spinner size="sm" color={variant === 'primary' ? 'accent' : 'default'} /> : <HeroButton.Label>{label}</HeroButton.Label>}
+    </HeroButton>
   );
 }
 
 export function AuthError({ message }: { message: string | null }) {
   if (!message) return null;
-  return <ThemedText style={styles.error}>{message}</ThemedText>;
+  return (
+    <Alert status="danger" className="rounded-2xl">
+      <Alert.Indicator />
+      <Alert.Content>
+        <Alert.Title>Der opstod en fejl</Alert.Title>
+        <Alert.Description>{message}</Alert.Description>
+      </Alert.Content>
+    </Alert>
+  );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.four,
-  },
-  content: {
-    width: '100%',
-    maxWidth: 520,
-    alignSelf: 'center',
-    gap: Spacing.two,
-  },
-  subtitle: {
-    marginBottom: Spacing.two,
-  },
-  input: {
-    minHeight: 52,
-    borderWidth: 1,
-    borderColor: '#d7d7df',
-    borderRadius: 14,
-    paddingHorizontal: Spacing.three,
-    color: '#000000',
-    backgroundColor: '#ffffff',
-    fontSize: 16,
-  },
-  button: {
-    minHeight: 52,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3c87f7',
-    marginTop: Spacing.one,
-  },
-  secondaryButton: {
-    backgroundColor: '#e8efff',
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontWeight: '700',
-  },
-  secondaryButtonText: {
-    color: '#245fb8',
-    fontWeight: '700',
-  },
-  pressed: {
-    opacity: 0.75,
-  },
-  disabled: {
-    opacity: 0.55,
-  },
-  error: {
-    color: '#b42318',
-    marginTop: Spacing.one,
-  },
-  linkRow: {
-    alignItems: 'center',
-    marginTop: Spacing.two,
-  },
-  roleRow: {
-    flexDirection: 'row',
-    gap: Spacing.two,
-    marginVertical: Spacing.one,
-  },
-  roleButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#d7d7df',
-    borderRadius: 14,
-    padding: Spacing.three,
-    alignItems: 'center',
-  },
-  roleButtonSelected: {
-    borderColor: '#3c87f7',
-    backgroundColor: '#e8efff',
-  },
-});
+export function AuthDivider() {
+  return (
+    <View className="flex-row items-center gap-3 py-1">
+      <View className="h-px flex-1 bg-border" />
+      <Text variant="small" className="text-text-secondary">
+        eller
+      </Text>
+      <View className="h-px flex-1 bg-border" />
+    </View>
+  );
+}
 
-export const authStyles = styles;
+export const authStyles = {} as const;

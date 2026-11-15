@@ -16,6 +16,7 @@ import { useLocation } from '@/hooks/use-location';
 import { useSaved } from '@/hooks/use-saved';
 import { getProvider } from '@/lib/api';
 import { distanceKm } from '@/lib/geo';
+import { UtilityHeader } from '@/components/layout/app-header';
 
 export default function ProviderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -55,8 +56,8 @@ export default function ProviderScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <Stack.Screen options={{ title: provider.name }} />
-      <ScrollView contentContainerClassName="gap-5 p-4 pb-10">
+      <UtilityHeader title="Hjælperdetaljer" />
+      <ScrollView contentContainerStyle={{ gap: 20, padding: 20, paddingBottom: 40 }}>
         <View className="gap-2">
           <Text variant="h1">{provider.name}</Text>
           <RatingBadge rating={rating} reviewCount={reviewCount} />

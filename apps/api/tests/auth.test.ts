@@ -360,6 +360,24 @@ describe('authentication', () => {
 });
 
 describe('role and ownership checks', () => {
+  it('completes customer task creation, provider quote, and customer acceptance', async () => {
+    const customer = await register('flow-customer@example.com', 'customer');
+    const provider = await register('flow-provider@example.com', 'provider');
+    const created = await request('/api/tasks', { method: 'POST', token: customer.sessionToken, body: { title: 'Samle et skab', description: 'Montering i Aarhus' } });
+    expect(created.status).toBe(201);
+    const { task } = await json<{ task: TaskRow }>(created);
+    const available = await json<{ tasks: TaskRow[] }>(await request('/api/tasks', { token: provider.sessionToken }));
+    expect(available.tasks.map((row) => row.id)).toContain(task.id);
+    const quoted = await request(`/api/tasks/${task.id}/offers`, { method: 'POST', token: provider.sessionToken, body: { amount: 1250, message: 'Jeg medbringer værktøj.' } });
+    expect(quoted.status).toBe(201);
+    const { offer } = await json<{ offer: OfferRow }>(quoted);
+    const received = await json<{ offers: OfferRow[] }>(await request(`/api/tasks/${task.id}/offers`, { token: customer.sessionToken }));
+    expect(received.offers[0]).toMatchObject({ id: offer.id, amount: 1250, status: 'pending' });
+    expect((await request(`/api/offers/${offer.id}/accept`, { method: 'POST', token: customer.sessionToken })).status).toBe(200);
+    const assigned = await json<{ task: TaskRow }>(await request(`/api/tasks/${task.id}`, { token: customer.sessionToken }));
+    expect(assigned.task.status).toBe('assigned');
+    expect(db.offers.get(offer.id)?.status).toBe('accepted');
+  });
   it('rejects wrong roles and hides another customer\'s task', async () => {
     const owner = await register('owner@example.com', 'customer');
     const otherCustomer = await register('other@example.com', 'customer');

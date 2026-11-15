@@ -1,16 +1,8 @@
-import { TextInput, type TextInputProps } from 'react-native';
+import { Input as HeroInput } from 'heroui-native/input';
+import type { ComponentProps } from 'react';
 
-import { cn } from '@/lib/utils';
+export type InputProps = ComponentProps<typeof HeroInput> & { className?: string };
 
-export function Input({ className, ...props }: TextInputProps & { className?: string }) {
-  return (
-    <TextInput
-      className={cn(
-        'h-11 rounded-md border border-input bg-background px-3 text-base text-foreground',
-        className
-      )}
-      placeholderTextColor="#8a8a8a"
-      {...props}
-    />
-  );
+export function Input({ className, ...props }: InputProps) {
+  return <HeroInput className={className ?? 'text-base'} {...props} />;
 }

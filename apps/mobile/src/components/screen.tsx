@@ -1,32 +1,36 @@
 import type { ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { AppHeader } from '@/components/layout/app-header';
 import { Text } from '@/components/ui/text';
 
 /** Shared page chrome for tab screens: safe area, title, scrollable body. */
 export function Screen({
   title,
   subtitle,
+  header = true,
   children,
 }: {
-  title: string;
+  title?: string;
   subtitle?: string;
+  header?: boolean;
   children: ReactNode;
 }) {
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-background">
+    <View className="flex-1 bg-background">
+      {header ? <AppHeader /> : null}
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
-        // On web the tab bar is absolutely positioned at the top and takes no layout space.
-        contentContainerClassName="gap-5 px-4 pb-24 pt-4 web:pt-24">
-        <View className="gap-1">
-          <Text variant="h1">{title}</Text>
-          {subtitle ? <Text variant="muted">{subtitle}</Text> : null}
-        </View>
+        contentContainerStyle={{ gap: 24, paddingHorizontal: 20, paddingBottom: 32, paddingTop: 8, width: '100%', maxWidth: 720, alignSelf: 'center' }}>
+        {title ? (
+          <View className="gap-2">
+            <Text variant="h1">{title}</Text>
+            {subtitle ? <Text className="max-w-[420px] text-text-secondary">{subtitle}</Text> : null}
+          </View>
+        ) : null}
         {children}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }

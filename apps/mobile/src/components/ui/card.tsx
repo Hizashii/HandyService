@@ -1,12 +1,12 @@
-import { View, type ViewProps } from 'react-native';
+import { Card as HeroCard } from 'heroui-native/card';
+import type { ComponentProps } from 'react';
 
-import { cn } from '@/lib/utils';
+export type CardProps = ComponentProps<typeof HeroCard> & { className?: string };
 
-export function Card({ className, ...props }: ViewProps & { className?: string }) {
+export function Card({ className, children, ...props }: CardProps) {
   return (
-    <View
-      className={cn('rounded-xl border border-border bg-card p-4', className)}
-      {...props}
-    />
+    <HeroCard {...props} className={className ?? 'border border-border bg-surface'}>
+      {children}
+    </HeroCard>
   );
 }

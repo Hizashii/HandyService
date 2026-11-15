@@ -1,11 +1,14 @@
+import { BriefcaseBusiness, Check, UserRound } from 'lucide-react-native';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 import { useAuth } from '@/auth/AuthContext';
 import { registerFormSchema } from '@/auth/schemas';
-import { AuthButton, AuthError, AuthInput, AuthShell, authStyles } from '@/components/auth/AuthUI';
-import { ThemedText } from '@/components/themed-text';
+import { AuthButton, AuthError, AuthField, AuthInput, AuthShell } from '@/components/auth/AuthUI';
+import { Icon } from '@/components/ui/icon';
+import { Text } from '@/components/ui/text';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -19,7 +22,7 @@ export default function RegisterScreen() {
   async function submit() {
     const parsed = registerFormSchema.safeParse({ email, password, role });
     if (!parsed.success) {
-      setError(parsed.error.issues[0]?.message ?? 'Check your details.');
+      setError(parsed.error.issues[0]?.message ?? 'Tjek dine oplysninger.');
       return;
     }
     setError(null);
@@ -29,49 +32,44 @@ export default function RegisterScreen() {
       await signUp(parsed.data);
       router.replace('/');
     } catch {
-      // The context exposes the server error below.
+      // AuthContext exposes server error.
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <AuthShell title="Join HelpDK" subtitle="Choose how you want to use the marketplace.">
-      <AuthInput
-        autoCapitalize="none"
-        autoComplete="email"
-        keyboardType="email-address"
-        onChangeText={setEmail}
-        placeholder="Email address"
-        value={email}
-      />
-      <AuthInput
-        autoCapitalize="none"
-        autoComplete="new-password"
-        onChangeText={setPassword}
-        placeholder="Password (8+ characters)"
-        secureTextEntry
-        value={password}
-      />
-      <View style={authStyles.roleRow}>
-        {(['customer', 'provider'] as const).map((option) => (
-          <Pressable
-            key={option}
-            onPress={() => setRole(option)}
-            style={[authStyles.roleButton, role === option && authStyles.roleButtonSelected]}>
-            <ThemedText type="smallBold">
-              {option === 'customer' ? 'I need help' : 'I provide help'}
-            </ThemedText>
-          </Pressable>
-        ))}
+    <AuthShell eyebrow="OPRET KONTO" title="Lokal hjælp til hverdagens opgaver." subtitle="Vælg, om du søger hjælp eller vil tilbyde dine kompetencer på HelpDK.">
+      <AuthField label="E-mail" error={error?.toLowerCase().includes('mail') ? error : null}>
+        <AuthInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" onChangeText={setEmail} placeholder="dig@eksempel.dk" value={email} />
+      </AuthField>
+      <AuthField label="Adgangskode" error={error?.toLowerCase().includes('tegn') || error?.toLowerCase().includes('kode') ? error : null}>
+        <AuthInput autoCapitalize="none" autoComplete="new-password" onChangeText={setPassword} placeholder="Mindst 8 tegn" secureTextEntry value={password} />
+      </AuthField>
+      <View className="gap-2">
+        <Text className="font-semibold">Hvordan vil du bruge HelpDK?</Text>
+        <View className="gap-3">
+          <RoleOption selected={role === 'customer'} icon={UserRound} title="Jeg søger hjælp" description="Find hjælp til mine opgaver" onPress={() => { void Haptics.selectionAsync(); setRole('customer'); }} />
+          <RoleOption selected={role === 'provider'} icon={BriefcaseBusiness} title="Jeg tilbyder hjælp" description="Find lokale opgaver, der passer til mig" onPress={() => { void Haptics.selectionAsync(); setRole('provider'); }} />
+        </View>
       </View>
-      <AuthError message={error ?? authError} />
-      <AuthButton label="Create account" loading={loading} onPress={() => void submit()} />
+      <AuthError message={error && !error.toLowerCase().includes('mail') && !error.toLowerCase().includes('tegn') && !error.toLowerCase().includes('kode') ? error : authError} />
+      <AuthButton label="Opret konto" loading={loading} onPress={() => void submit()} />
       <Link href="/login" asChild>
-        <Pressable style={authStyles.linkRow}>
-          <ThemedText type="linkPrimary">Already have an account? Sign in</ThemedText>
+        <Pressable accessibilityRole="link" className="min-h-11 items-center justify-center">
+          <Text className="font-semibold text-brand">Jeg har allerede en konto</Text>
         </Pressable>
       </Link>
     </AuthShell>
+  );
+}
+
+function RoleOption({ selected, icon: IconComponent, title, description, onPress }: { selected: boolean; icon: typeof UserRound; title: string; description: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="radio" accessibilityState={{ selected }} onPress={onPress} className={`min-h-[76px] flex-row items-center gap-3 rounded-2xl border p-4 active:opacity-80 ${selected ? 'border-2 border-brand bg-accent-soft' : 'border-border bg-surface'}`}>
+      <View className="h-10 w-10 items-center justify-center rounded-xl bg-surface"><Icon as={IconComponent} size={20} className="text-brand" /></View>
+      <View className="flex-1 gap-0.5"><Text className="font-bold">{title}</Text><Text className="text-sm text-text-secondary">{description}</Text></View>
+      <View className={`h-6 w-6 items-center justify-center rounded-full border ${selected ? 'border-brand bg-brand' : 'border-border bg-surface'}`}>{selected ? <Icon as={Check} size={14} className="text-accent-foreground" strokeWidth={3} /> : null}</View>
+    </Pressable>
   );
 }
