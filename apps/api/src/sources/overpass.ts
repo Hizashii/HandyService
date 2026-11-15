@@ -14,6 +14,9 @@ const ENDPOINTS = [
  */
 export const MAX_PROVIDERS_PER_FETCH = 300
 
+/** Longest we wait on one Overpass server before moving on to the next. */
+const ATTEMPT_TIMEOUT_MS = 27_000
+
 /** Remarks Overpass puts in an HTTP 200 body when a query died part-way through. */
 const RUNTIME_ERROR = /runtime error|timed out|out of memory|too many requests/i
 
@@ -78,6 +81,9 @@ async function runQuery(query: string): Promise<OverpassElement[]> {
           method: 'POST',
           headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'HandyService/0.1' },
           body: new URLSearchParams({ data: query }),
+          // The public servers queue or throttle when busy and can hold a request open indefinitely.
+          // Bound every attempt so a search always finishes (two endpoints stay inside the app's 60s).
+          signal: AbortSignal.timeout(ATTEMPT_TIMEOUT_MS),
         })
         if (res.ok) {
           const json = (await res.json()) as { elements?: OverpassElement[]; remark?: string }
@@ -104,16 +110,24 @@ async function runQuery(query: string): Promise<OverpassElement[]> {
  * Providers of the given categories within `radiusKm` of a point, nearest first,
  * capped at MAX_PROVIDERS_PER_FETCH.
  */
+export type FetchResult = {
+  providers: SourceProvider[]
+  /** True when nothing was cut by MAX_PROVIDERS_PER_FETCH, so `providers` is every match in the area. */
+  complete: boolean
+}
+
 export async function fetchProviders(
   categories: readonly CategoryId[],
   lat: number,
   lng: number,
-  radiusKm: number
-): Promise<SourceProvider[]> {
-  const statements = overpassStatements(categories, Math.round(radiusKm * 1000), lat, lng)
+  radiusKm: number,
+  /** Skip the slow name-regex rules (used for broad all-category searches). */
+  includeNameRules = true
+): Promise<FetchResult> {
+  const statements = overpassStatements(categories, Math.round(radiusKm * 1000), lat, lng, includeNameRules)
   // No `out N` limit: Overpass applies it in object-id order, before any distance sorting, so it
   // could drop nearby providers. We fetch every candidate and keep the nearest ones ourselves.
-  const query = `[out:json][timeout:30];(${statements.join('')});out center tags;`
+  const query = `[out:json][timeout:25];(${statements.join('')});out center tags;`
   const elements = await runQuery(query)
 
   const seen = new Set<string>()
@@ -125,7 +139,9 @@ export async function fetchProviders(
       providers.push(p)
     }
   }
-  return providers
-    .sort((a, b) => haversineKm(lat, lng, a.lat, a.lng) - haversineKm(lat, lng, b.lat, b.lng))
-    .slice(0, MAX_PROVIDERS_PER_FETCH)
+  providers.sort((a, b) => haversineKm(lat, lng, a.lat, a.lng) - haversineKm(lat, lng, b.lat, b.lng))
+  return {
+    providers: providers.slice(0, MAX_PROVIDERS_PER_FETCH),
+    complete: providers.length <= MAX_PROVIDERS_PER_FETCH,
+  }
 }

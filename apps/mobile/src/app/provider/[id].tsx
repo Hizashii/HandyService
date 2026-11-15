@@ -14,12 +14,13 @@ import type { Provider } from '@/data/types';
 import { useLocation } from '@/hooks/use-location';
 import { useSaved } from '@/hooks/use-saved';
 import { getProvider } from '@/lib/api';
+import { distanceKm } from '@/lib/geo';
 
 export default function ProviderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { place } = useLocation();
-  const { isSaved, toggle } = useSaved();
-  const [provider, setProvider] = useState<Provider | null>(null);
+  const { saved: savedList, isSaved, toggle } = useSaved();
+  const [fetched, setFetched] = useState<Provider | null>(null);
   const [error, setError] = useState<string | null>(null);
   const lat = place?.lat;
   const lng = place?.lng;
@@ -27,12 +28,16 @@ export default function ProviderScreen() {
   useEffect(() => {
     const controller = new AbortController();
     getProvider(id, lat !== undefined && lng !== undefined ? { lat, lng } : undefined, controller.signal)
-      .then((res) => setProvider(res.provider))
+      .then((res) => setFetched(res.provider))
       .catch((err) => {
         if (!controller.signal.aborted) setError(err instanceof Error ? err.message : 'Something went wrong');
       });
     return () => controller.abort();
   }, [id, lat, lng]);
+
+  // If the server no longer has the provider (not confirmed recently, or offline), still show the copy
+  // the user saved so Saved keeps working.
+  const provider = fetched ?? (error ? (savedList.find((p) => p.id === id) ?? null) : null);
 
   if (!provider) {
     return (
@@ -45,6 +50,7 @@ export default function ProviderScreen() {
 
   const saved = isSaved(provider.id);
   const { rating, reviewCount } = overallRating(provider.ratings);
+  const km = place ? distanceKm(place, provider) : undefined;
 
   return (
     <View className="flex-1 bg-background">
@@ -58,11 +64,11 @@ export default function ProviderScreen() {
               <Badge key={c}>{getCategory(c)?.label ?? c}</Badge>
             ))}
           </View>
-          {provider.address || provider.distanceKm !== undefined ? (
+          {provider.address || km !== undefined ? (
             <View className="flex-row items-center gap-1">
               <Icon as={MapPin} size={14} className="text-muted-foreground" />
               <Text variant="muted" className="flex-1">
-                {[provider.address ?? provider.city, provider.distanceKm !== undefined ? `${provider.distanceKm.toFixed(1)} km away` : null]
+                {[provider.address ?? provider.city, km !== undefined ? `${km.toFixed(1)} km away` : null]
                   .filter(Boolean)
                   .join(' · ')}
               </Text>

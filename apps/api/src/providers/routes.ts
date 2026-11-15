@@ -44,8 +44,25 @@ providerRoutes.get('/', async (c) => {
   let upstreamFailed = false
   if (!(await isAreaFresh(c.env.DB, cell.key, cacheKey, now))) {
     try {
-      const fetched = await fetchProviders(categoryId ? [categoryId] : CATEGORY_IDS, cell.lat, cell.lng, FETCH_RADIUS_KM)
-      await saveArea(c.env.DB, cell.key, cacheKey, fetched, now)
+      const fetchedCategories = categoryId ? [categoryId] : CATEGORY_IDS
+      // A single category runs every rule for it. The broad all-categories search (the Home screen)
+      // uses only the fast tag rules, so it stays quick even in a big city.
+      const exhaustive = categoryId !== undefined
+      const { providers: fetched, complete } = await fetchProviders(
+        fetchedCategories,
+        cell.lat,
+        cell.lng,
+        FETCH_RADIUS_KM,
+        exhaustive
+      )
+      await saveArea(c.env.DB, cell.key, cacheKey, fetched, now, {
+        categories: fetchedCategories,
+        lat: cell.lat,
+        lng: cell.lng,
+        radiusKm: FETCH_RADIUS_KM,
+        // Without the name rules "not returned" does not mean "gone", so only exhaustive fetches may delete.
+        complete: complete && exhaustive,
+      })
     } catch (err) {
       // Serve whatever we already have (possibly stale) rather than failing the search.
       console.error('Upstream fetch failed', err)
@@ -71,7 +88,12 @@ providerRoutes.get('/', async (c) => {
 
 providerRoutes.get('/:id', async (c) => {
   const near = z.object({ lat: coord(-90, 90), lng: coord(-180, 180) }).safeParse(c.req.query())
-  const provider = await getProviderById(c.env.DB, c.req.param('id'), near.success ? near.data : undefined)
+  const provider = await getProviderById(
+    c.env.DB,
+    c.req.param('id'),
+    near.success ? near.data : undefined,
+    Date.now() - EXPIRE_MS
+  )
   if (!provider) return c.json({ error: 'Provider not found' }, 404)
   return c.json({ provider })
 })

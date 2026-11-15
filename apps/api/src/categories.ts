@@ -54,16 +54,22 @@ export function overpassStatements(
   categories: readonly CategoryId[],
   radiusMeters: number,
   lat: number,
-  lng: number
+  lng: number,
+  /**
+   * Include the name-regex rules. They are far slower than tag lookups, so broad "all categories"
+   * searches skip them; they run when the user picks a specific category.
+   */
+  includeNameRules = true
 ): string[] {
   const around = `(around:${radiusMeters},${lat},${lng})`;
   const statements: string[] = [];
   for (const id of categories) {
     const rule = CATEGORY_RULES[id];
     for (const [key, values] of Object.entries(rule.tags ?? {})) {
-      statements.push(`nwr["${key}"~"^(${values.join('|')})$"]${around};`);
+      // OSM allows several values in one tag ("carpenter;joiner"), so match each ;-separated value.
+      statements.push(`nwr["${key}"~"(^|;) ?(${values.join('|')}) ?(;|$)"]${around};`);
     }
-    if (rule.name) {
+    if (rule.name && includeNameRules) {
       // A bare name regex scans every named object in the area, which is very slow in cities.
       // Requiring a business-type key lets Overpass start from a much smaller indexed set.
       for (const key of ['office', 'craft', 'shop']) {

@@ -44,13 +44,50 @@ export async function isAreaFresh(db: D1Database, cell: string, category: string
   return row !== null && now - row.fetched_at < FRESH_MS
 }
 
+/** The area an upstream fetch covered, used to drop providers that no longer exist in it. */
+export type FetchScope = {
+  categories: readonly string[]
+  lat: number
+  lng: number
+  radiusKm: number
+  /** Only a complete fetch (nothing truncated) can prove a provider is gone. */
+  complete: boolean
+}
+
+/** D1 limits how many statements one batch may hold, so write in chunks. */
+const BATCH_SIZE = 50
+
+/**
+ * Ids of cached providers inside the fetched area that the fetch no longer returned and that have
+ * no category outside the fetched set, i.e. they were deleted from the source or lost their tags.
+ */
+async function findVanished(db: D1Database, scope: FetchScope, returned: Set<string>): Promise<string[]> {
+  if (!scope.complete) return []
+  const box = boundingBox(scope.lat, scope.lng, scope.radiusKm)
+  const { results } = await db
+    .prepare('SELECT id, categories, lat, lng FROM providers WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ?')
+    .bind(box.minLat, box.maxLat, box.minLng, box.maxLng)
+    .all<Pick<ProviderRow, 'id' | 'categories' | 'lat' | 'lng'>>()
+  const fetched = new Set(scope.categories)
+  return results
+    .filter(
+      (row) =>
+        !returned.has(row.id) &&
+        haversineKm(scope.lat, scope.lng, row.lat, row.lng) <= scope.radiusKm &&
+        (JSON.parse(row.categories) as string[]).every((c) => fetched.has(c))
+    )
+    .map((row) => row.id)
+}
+
 export async function saveArea(
   db: D1Database,
   cell: string,
   category: string,
   providers: SourceProvider[],
-  now: number
+  now: number,
+  scope: FetchScope
 ) {
+  const vanished = await findVanished(db, scope, new Set(providers.map((p) => p.id)))
   const upsert = db.prepare(
     `INSERT INTO providers (id, source, name, categories, lat, lng, city, address, phone, website, fetched_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -62,12 +99,18 @@ export async function saveArea(
   const statements = providers.map((p) =>
     upsert.bind(p.id, p.source, p.name, JSON.stringify(p.categories), p.lat, p.lng, p.city, p.address, p.phone, p.website, now)
   )
+  for (const id of vanished) {
+    statements.push(db.prepare('DELETE FROM providers WHERE id = ?').bind(id))
+  }
+  // The "area fetched" marker goes last so a failed write never marks an area as fresh.
   statements.push(
     db
       .prepare('INSERT OR REPLACE INTO area_fetches (cell, category, fetched_at) VALUES (?, ?, ?)')
       .bind(cell, category, now)
   )
-  await db.batch(statements)
+  for (let i = 0; i < statements.length; i += BATCH_SIZE) {
+    await db.batch(statements.slice(i, i + BATCH_SIZE))
+  }
 }
 
 async function attachRatings(db: D1Database, rows: ProviderRow[]): Promise<Map<string, Rating[]>> {
@@ -153,9 +196,14 @@ export async function searchNearby(
 export async function getProviderById(
   db: D1Database,
   id: string,
-  from?: { lat: number; lng: number }
+  from?: { lat: number; lng: number },
+  /** Treat a provider no refresh has confirmed since this unix-ms time as gone. */
+  confirmedSince?: number
 ): Promise<Provider | null> {
-  const row = await db.prepare('SELECT * FROM providers WHERE id = ?').bind(id).first<ProviderRow>()
+  const row = await db
+    .prepare('SELECT * FROM providers WHERE id = ? AND fetched_at >= ?')
+    .bind(id, confirmedSince ?? 0)
+    .first<ProviderRow>()
   if (!row) return null
   const ratings = await attachRatings(db, [row])
   const km = from ? Math.round(haversineKm(from.lat, from.lng, row.lat, row.lng) * 10) / 10 : undefined

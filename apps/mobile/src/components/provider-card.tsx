@@ -9,16 +9,20 @@ import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
 import { getCategory, overallRating } from '@/data/categories';
 import type { Provider } from '@/data/types';
+import { useLocation } from '@/hooks/use-location';
 import { useSaved } from '@/hooks/use-saved';
+import { distanceKm } from '@/lib/geo';
 import { cn } from '@/lib/utils';
 
 export function ProviderCard({ provider }: { provider: Provider }) {
   const { isSaved, toggle } = useSaved();
   const saved = isSaved(provider.id);
   const { rating, reviewCount } = overallRating(provider.ratings);
-  const where = [provider.city, provider.distanceKm !== undefined ? `${provider.distanceKm.toFixed(1)} km` : null]
-    .filter(Boolean)
-    .join(' · ');
+  const { place } = useLocation();
+  // Always measure from where the user is now: a distance stored when the provider was saved (or
+  // returned for an earlier location) would be wrong after the user changes location.
+  const km = place ? distanceKm(place, provider) : undefined;
+  const where = [provider.city, km !== undefined ? `${km.toFixed(1)} km` : null].filter(Boolean).join(' · ');
 
   return (
     <Link href={{ pathname: '/provider/[id]', params: { id: provider.id } }} asChild>
