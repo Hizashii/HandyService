@@ -80,7 +80,7 @@ export const privacy: LegalDoc = {
         'Konto, opgaver og tilbud: indtil du beder os slette dem.',
         'Sessioner: en session er gyldig i højst 30 dage og ophører, når du logger ud. Udløbne sessioner kan ikke bruges, men selve registreringen kan blive liggende i databasen, indtil den ryddes op. Vi sletter den på din anmodning.',
         'Login-tællere: tællerne gælder i 15 minutter. De ryddes op ved senere login-forsøg og kan derfor blive liggende lidt længere i databasen.',
-        'Virksomhedsoplysninger: opdateres løbende. Oplysninger, der ikke længere bekræftes, fjernes efter cirka 14 dage.',
+        'Virksomhedsoplysninger: opdateres, når et område søges igen. Oplysninger, der ikke har kunnet bekræftes i cirka 14 dage, skjules i søgningen. De slettes, når området næste gang opdateres, og kan midlertidigt vises igen, hvis vores kortkilder ikke svarer. Vi sletter dem på din anmodning.',
       ],
     },
     {
