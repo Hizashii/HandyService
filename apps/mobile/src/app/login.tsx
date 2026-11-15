@@ -37,7 +37,7 @@ export default function LoginScreen() {
   }
 
   return (
-    <AuthShell eyebrow="LOG IND" title="Godt at se dig igen." subtitle="Log ind på din HelpDK-konto, og fortsæt med dine opgaver og aftaler.">
+    <AuthShell eyebrow="LOG IND" title="Godt at se dig igen." subtitle="Log ind på din Håndmatch-konto, og fortsæt med dine opgaver og aftaler.">
       <AuthField label="E-mail" error={error?.toLowerCase().includes('email') || error?.toLowerCase().includes('mail') ? error : null}>
         <View className="relative justify-center"><AuthInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" onChangeText={setEmail} placeholder="dig@eksempel.dk" value={email} className="pl-12" /><View className="absolute left-4" pointerEvents="none"><Icon as={Mail} size={18} className="text-brand" /></View></View>
       </AuthField>

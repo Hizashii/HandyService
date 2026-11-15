@@ -16,7 +16,7 @@ export type SiteLookup = SiteContacts & { read: boolean }
 /** Biggest page we read. Contact info is near the top; this keeps one slow site from costing much. */
 const MAX_BYTES = 400_000
 const FETCH_TIMEOUT_MS = 6_000
-const USER_AGENT = 'HandyService/0.1 (looking up public business contact details)'
+const USER_AGENT = 'Haandmatch/0.1 (looking up public business contact details)'
 
 /** Addresses that are page furniture or placeholders, never a business contact. */
 const JUNK_EMAIL = /(@(example|domain|email|yourdomain|sentry|wixpress|godaddy|squarespace)\.|\.(png|jpe?g|gif|webp|svg|css|js)$|^(noreply|no-reply|donotreply)@)/i

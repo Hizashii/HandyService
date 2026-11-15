@@ -1,6 +1,6 @@
-# HelpDK mobile app
+# Håndmatch mobile app
 
-Expo Router client for the HelpDK marketplace. Signed-out users can register or log in. Marketplace tabs, provider details, and profile are protected routes.
+Expo Router client for the Håndmatch marketplace. Signed-out users can register or log in. Marketplace tabs, provider details, and profile are protected routes.
 
 ## Local setup
 

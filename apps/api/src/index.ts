@@ -10,7 +10,7 @@ const app = new Hono<AppEnv>();
 
 app.use('/api/*', cors({ origin: '*' }));
 
-app.get('/', (c) => c.json({ name: 'HelpDK API', ok: true }));
+app.get('/', (c) => c.json({ name: 'Håndmatch API', ok: true }));
 app.route('/api/auth', authRoutes);
 app.route('/api/tasks', taskRoutes);
 app.route('/api/offers', offerRoutes);

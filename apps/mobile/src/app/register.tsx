@@ -39,7 +39,7 @@ export default function RegisterScreen() {
   }
 
   return (
-    <AuthShell eyebrow="OPRET KONTO" title="Lokal hjælp til hverdagens opgaver." subtitle="Vælg, om du søger hjælp eller vil tilbyde dine kompetencer på HelpDK.">
+    <AuthShell eyebrow="OPRET KONTO" title="Lokal hjælp til hverdagens opgaver." subtitle="Vælg, om du søger hjælp eller vil tilbyde dine kompetencer på Håndmatch.">
       <AuthField label="E-mail" error={error?.toLowerCase().includes('mail') ? error : null}>
         <AuthInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" onChangeText={setEmail} placeholder="dig@eksempel.dk" value={email} />
       </AuthField>
@@ -47,7 +47,7 @@ export default function RegisterScreen() {
         <AuthInput autoCapitalize="none" autoComplete="new-password" onChangeText={setPassword} placeholder="Mindst 8 tegn" secureTextEntry value={password} />
       </AuthField>
       <View className="gap-2">
-        <Text className="font-semibold">Hvordan vil du bruge HelpDK?</Text>
+        <Text className="font-semibold">Hvordan vil du bruge Håndmatch?</Text>
         <View className="gap-3">
           <RoleOption selected={role === 'customer'} icon={UserRound} title="Jeg søger hjælp" description="Find hjælp til mine opgaver" onPress={() => { void Haptics.selectionAsync(); setRole('customer'); }} />
           <RoleOption selected={role === 'provider'} icon={BriefcaseBusiness} title="Jeg tilbyder hjælp" description="Find lokale opgaver, der passer til mig" onPress={() => { void Haptics.selectionAsync(); setRole('provider'); }} />

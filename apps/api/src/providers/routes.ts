@@ -269,7 +269,7 @@ geocodeRoutes.get('/', async (c) => {
 
   // Nominatim asks for an identifying User-Agent and caching; one result set per query is cached a day.
   const res = await fetch(url, {
-    headers: { 'user-agent': 'HandyService/0.1' },
+    headers: { 'user-agent': 'Haandmatch/0.1' },
     cf: { cacheTtl: 86400, cacheEverything: true },
   } as RequestInit)
   if (!res.ok) return c.json({ error: 'Geocoding is temporarily unavailable' }, 502)

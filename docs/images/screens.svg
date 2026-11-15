@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 790" role="img" aria-labelledby="t d">
-  <title id="t">HelpDK screens</title>
+  <title id="t">Håndmatch screens</title>
   <desc id="d">Three phone screens: the Home screen with service categories, the nearby provider results with call, email and website buttons, and a provider detail screen. Sample data.</desc>
   <defs>
     <filter id="sh" x="-20%" y="-10%" width="140%" height="130%"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#0b3d2e" flood-opacity="0.22"/></filter>

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 640" role="img" aria-labelledby="t d">
-  <title id="t">HelpDK demo</title>
+  <title id="t">Håndmatch demo</title>
   <desc id="d">An animated walkthrough: location is found, the first providers appear in about three seconds, more arrive while the list is open, phone numbers and emails fill in from provider websites, then the user taps Call. Illustration with sample data.</desc>
   <defs>
     <filter id="sh" x="-20%" y="-10%" width="140%" height="130%"><feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#0b3d2e" flood-opacity="0.22"/></filter>

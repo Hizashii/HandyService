@@ -96,7 +96,7 @@ function toProvider(el: OverpassElement): SourceProvider | null {
 async function requestOne(endpoint: string, query: string, signal: AbortSignal): Promise<OverpassElement[]> {
   const res = await fetch(endpoint, {
     method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'HandyService/0.1' },
+    headers: { 'content-type': 'application/x-www-form-urlencoded', 'user-agent': 'Haandmatch/0.1' },
     body: new URLSearchParams({ data: query }),
     signal,
   })
