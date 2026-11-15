@@ -7,7 +7,7 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useUniwind } from 'uniwind';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView } from '@/components/layout/safe-area';
 import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
@@ -45,8 +45,9 @@ function RootNavigator() {
   });
 
   useEffect(() => {
-    if ((fontsLoaded || fontError) && status !== 'loading') void SplashScreen.hideAsync();
-  }, [fontError, fontsLoaded, status]);
+    // Session recovery can wait on a network; reveal the loading UI meanwhile.
+    if (fontsLoaded || fontError) void SplashScreen.hideAsync();
+  }, [fontError, fontsLoaded]);
 
   if ((!fontsLoaded && !fontError) || status === 'loading') {
     return (
@@ -71,8 +72,8 @@ function RootNavigator() {
           <Stack.Screen name="profile" />
         </Stack.Protected>
         <Stack.Protected guard={!isAuthenticated}>
-          <Stack.Screen name="login" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="register" options={{ presentation: 'modal' }} />
+          <Stack.Screen name="login" options={{ presentation: 'card' }} />
+          <Stack.Screen name="register" options={{ presentation: 'card' }} />
         </Stack.Protected>
       </Stack>
     </SavedProvider></LocationProvider>
