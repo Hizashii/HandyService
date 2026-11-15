@@ -39,7 +39,7 @@ export default function SearchScreen() {
   const { place } = useLocation();
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortId>('distance');
-  const { providers, loading, error } = useProviders({ category, q: query });
+  const { providers, loading, error, stale } = useProviders({ category, q: query });
 
   // The API returns nearest first; "Top rated" puts rated providers on top and keeps distance order within ties.
   const sorted = useMemo(() => {
@@ -108,7 +108,7 @@ export default function SearchScreen() {
             {sorted.length} {sorted.length === 1 ? 'provider' : 'providers'} within 25 km
           </Text>
         ) : null}
-        <ProviderList providers={sorted} loading={loading} error={error} hasLocation={place !== null} />
+        <ProviderList providers={sorted} loading={loading} error={error} stale={stale} hasLocation={place !== null} />
       </View>
     </Screen>
   );

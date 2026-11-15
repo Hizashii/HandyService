@@ -14,8 +14,12 @@ const ENDPOINTS = [
  */
 export const MAX_PROVIDERS_PER_FETCH = 300
 
-/** Longest we wait on one Overpass server before moving on to the next. */
-const ATTEMPT_TIMEOUT_MS = 27_000
+/**
+ * Longest we wait on one Overpass server before moving on to the next. The free public servers take
+ * 20-45s for even a modest query (measured: a combined 13-tag query for a 35 km area took ~44s), so
+ * a shorter limit would abort it every time and nothing would ever be cached.
+ */
+const ATTEMPT_TIMEOUT_MS = 55_000
 
 /** Remarks Overpass puts in an HTTP 200 body when a query died part-way through. */
 const RUNTIME_ERROR = /runtime error|timed out|out of memory|too many requests/i
@@ -74,7 +78,7 @@ async function runQuery(query: string): Promise<OverpassElement[]> {
   let lastError: unknown
   for (const endpoint of ENDPOINTS) {
     // One attempt per endpoint (then fall back to the mirror): a cold fetch already takes a while and
-    // the app gives up after 60s, so long retry loops would only outlast the caller.
+    // the app gives up after 120s, so long retry loops would only outlast the caller.
     for (let attempt = 0; attempt < 1; attempt++) {
       try {
         const res = await fetch(endpoint, {
@@ -127,7 +131,7 @@ export async function fetchProviders(
   const statements = overpassStatements(categories, Math.round(radiusKm * 1000), lat, lng, includeNameRules)
   // No `out N` limit: Overpass applies it in object-id order, before any distance sorting, so it
   // could drop nearby providers. We fetch every candidate and keep the nearest ones ourselves.
-  const query = `[out:json][timeout:25];(${statements.join('')});out center tags;`
+  const query = `[out:json][timeout:50];(${statements.join('')});out center tags;`
   const elements = await runQuery(query)
 
   const seen = new Set<string>()

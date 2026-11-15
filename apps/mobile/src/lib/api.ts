@@ -18,8 +18,8 @@ function resolveBaseUrl() {
 
 export const API_URL = resolveBaseUrl();
 
-/** A cold area fetch can take 30s+ on the free upstream, so allow plenty of time. */
-const TIMEOUT_MS = 60_000;
+/** A cold area fetch takes ~45s on the free upstream (and can retry on a mirror), so allow plenty of time. */
+const TIMEOUT_MS = 120_000;
 
 export class ApiError extends Error {}
 
