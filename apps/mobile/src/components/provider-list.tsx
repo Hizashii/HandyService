@@ -1,5 +1,6 @@
 import { ActivityIndicator, View } from 'react-native';
 
+import { OsmAttribution } from '@/components/legal/osm-attribution';
 import { ProviderCard } from '@/components/provider-card';
 import { Text } from '@/components/ui/text';
 import type { Provider } from '@/data/types';
@@ -65,6 +66,7 @@ export function ProviderList({
       {providers.map((p) => (
         <ProviderCard key={p.id} provider={p} />
       ))}
+      <OsmAttribution />
       {refreshing ? (
         <View className="flex-row items-center justify-center gap-2 py-3">
           <ActivityIndicator size="small" />
