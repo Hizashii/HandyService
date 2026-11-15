@@ -234,8 +234,9 @@ export async function getProviderById(
 export const CONTACT_RECHECK_MS = 30 * 24 * 60 * 60 * 1000
 
 /**
- * Providers among `ids` that have a website, are missing a phone or email, and have not had their
- * website checked recently. At most `limit`, in the order given (nearest first).
+ * Providers among `ids` that have a website, lack a phone or email in OpenStreetMap, and have not had
+ * their website checked recently. Judged on the OSM fields only: values read from a website are
+ * re-checked once they are older than CONTACT_RECHECK_MS, so changed contact details are picked up. At most `limit`, in the order given (nearest first).
  */
 export async function contactCandidates(
   db: D1Database,
@@ -252,7 +253,7 @@ export async function contactCandidates(
          WHERE id IN (${chunk.map(() => '?').join(',')})
            AND website IS NOT NULL
            AND (contact_checked_at IS NULL OR contact_checked_at < ?)
-           AND (COALESCE(phone, site_phone) IS NULL OR COALESCE(email, site_email) IS NULL)`
+           AND (phone IS NULL OR email IS NULL)`
       )
       .bind(...chunk, now - CONTACT_RECHECK_MS)
       .all<{ id: string; website: string }>()
