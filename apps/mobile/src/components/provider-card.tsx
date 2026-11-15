@@ -27,11 +27,12 @@ export function ProviderCard({ provider }: { provider: Provider }) {
   return (
     <Link href={{ pathname: '/provider/[id]', params: { id: provider.id } }} asChild>
       <Pressable className="active:opacity-80">
-        <Card className="gap-2">
+        <Card className="gap-3 rounded-2xl p-4">
           <View className="flex-row items-start justify-between gap-3">
+            <View className="h-11 w-11 items-center justify-center rounded-full border border-border bg-surface-muted"><Text className="font-bold text-[15px] text-brand-dark">{provider.name.split(/\s+/).slice(0, 2).map((part) => part[0]).join('')}</Text></View>
             <View className="flex-1 gap-1">
               <Text variant="h3">{provider.name}</Text>
-              <RatingBadge rating={rating} reviewCount={reviewCount} />
+              {reviewCount > 0 ? <RatingBadge rating={rating} reviewCount={reviewCount} /> : <Text className="text-[12px] leading-4 text-text-secondary">{provider.city ?? 'Lokal serviceudbyder'}</Text>}
             </View>
             <Pressable
               hitSlop={10}
@@ -46,7 +47,7 @@ export function ProviderCard({ provider }: { provider: Provider }) {
             </Pressable>
           </View>
 
-          <View className="flex-row flex-wrap items-center gap-2">
+          <View className="flex-row flex-wrap items-center gap-1.5 border-t border-border pt-3">
             {provider.categories.map((id) => (
               <Badge key={id}>{getCategory(id)?.label ?? id}</Badge>
             ))}

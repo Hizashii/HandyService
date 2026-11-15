@@ -6,11 +6,11 @@ import { cn } from '@/lib/utils';
 export const textVariants = cva('font-sans text-base text-foreground', {
   variants: {
     variant: {
-      default: '',
-      display: 'text-4xl font-extrabold tracking-tight',
-      h1: 'text-3xl font-extrabold tracking-tight',
-      h2: 'text-xl font-bold tracking-tight',
-      h3: 'text-base font-semibold',
+      default: 'leading-6',
+      display: 'text-[32px] leading-[39px] font-extrabold tracking-[-1.2px]',
+      h1: 'text-[28px] leading-[35px] font-extrabold tracking-[-0.8px]',
+      h2: 'text-[20px] leading-[26px] font-bold tracking-[-0.5px]',
+      h3: 'text-base leading-[22px] font-bold tracking-[-0.25px]',
       small: 'text-sm',
       muted: 'text-sm text-text-secondary',
     },

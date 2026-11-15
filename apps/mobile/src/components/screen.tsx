@@ -22,7 +22,7 @@ export function Screen({
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ gap: 24, paddingHorizontal: 20, paddingBottom: 32, paddingTop: 8, width: '100%', maxWidth: 720, alignSelf: 'center' }}>
+        contentContainerStyle={{ gap: 20, paddingHorizontal: 20, paddingBottom: 32, paddingTop: 16, width: '100%', maxWidth: 720, alignSelf: 'center' }}>
         {title ? (
           <View className="gap-2">
             <Text variant="h1">{title}</Text>

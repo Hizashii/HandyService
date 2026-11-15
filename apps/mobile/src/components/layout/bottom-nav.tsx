@@ -5,7 +5,6 @@ import { SafeAreaView } from '@/components/layout/safe-area';
 
 import { Icon } from '@/components/ui/icon';
 import { Text } from '@/components/ui/text';
-import { colors } from '@/lib/theme';
 
 const items = [
   { key: 'home', label: 'Hjem', icon: Home, path: '/' },
@@ -20,14 +19,15 @@ export function BottomNav() {
 
   return (
     <SafeAreaView edges={[]} className="border-t border-border bg-surface">
-      <View className="h-[68px] flex-row items-center justify-around px-2">
+      <View className="min-h-[64px] flex-row items-center justify-around px-2 py-2">
         {items.slice(0, 2).map((item) => <NavItem key={item.key} icon={item.icon} label={item.label} path={item.path} active={activeKey === item.key} />)}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Post a task"
-          className="-mt-7 h-[58px] w-[58px] items-center justify-center rounded-full border-4 border-background bg-brand"
+          className="min-h-12 min-w-[58px] items-center justify-center gap-1"
           onPress={() => router.push('/create-task')}>
-          <Icon as={Plus} size={24} color={colors.light.onBrand} strokeWidth={2.5} />
+          <Icon as={Plus} size={21} className="text-foreground" strokeWidth={1.7} />
+          <Text className="text-[10px] leading-4 font-medium text-text-secondary">Opret</Text>
         </Pressable>
         {items.slice(2).map((item) => <NavItem key={item.key} icon={item.icon} label={item.label} path={item.path} active={activeKey === item.key} />)}
       </View>
@@ -40,10 +40,10 @@ function NavItem({ icon: IconComponent, label, path, active }: { icon: typeof Ho
     <Pressable
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
-      className="min-h-12 min-w-[64px] items-center justify-center gap-1"
+      className="min-h-12 min-w-[56px] items-center justify-center gap-1"
       onPress={() => router.replace(path as never)}>
-      <Icon as={IconComponent} size={20} className={active ? 'text-brand' : 'text-text-secondary'} strokeWidth={active ? 2.5 : 1.8} />
-      <Text className={active ? 'text-[11px] font-bold text-brand' : 'text-[11px] font-medium text-text-secondary'}>{label}</Text>
+      <Icon as={IconComponent} size={21} className={active ? 'text-brand-dark' : 'text-foreground'} strokeWidth={active ? 2.3 : 1.7} />
+      <Text className={active ? 'text-[10px] leading-4 font-bold text-brand-dark' : 'text-[10px] leading-4 font-medium text-text-secondary'}>{label}</Text>
     </Pressable>
   );
 }

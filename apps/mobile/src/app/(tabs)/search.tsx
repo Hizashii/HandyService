@@ -37,7 +37,7 @@ export default function ExploreScreen() {
   return (
     <Screen title="Udforsk opgaver" subtitle="Find lokale opgaver og den næste gode aftale.">
       <View className="gap-3">
-        <View className="flex-row gap-2"><Chip onPress={() => setMode('tasks')} variant={mode === 'tasks' ? 'primary' : 'soft'}><Chip.Label>Opgaver</Chip.Label></Chip><Chip onPress={() => setMode('providers')} variant={mode === 'providers' ? 'primary' : 'soft'}><Chip.Label>Find hjælpere</Chip.Label></Chip></View>
+        <View className="flex-row gap-2 rounded-xl border border-border bg-surface-muted p-1"><Chip color="default" className={mode === 'tasks' ? 'flex-1 rounded-lg bg-surface' : 'flex-1 rounded-lg bg-surface-muted'} onPress={() => setMode('tasks')} variant="secondary"><Chip.Label className="text-foreground">Opgaver</Chip.Label></Chip><Chip color="default" className={mode === 'providers' ? 'flex-1 rounded-lg bg-surface' : 'flex-1 rounded-lg bg-surface-muted'} onPress={() => setMode('providers')} variant="secondary"><Chip.Label className="text-foreground">Find hjælpere</Chip.Label></Chip></View>
         {mode === 'providers' ? <LocationBar /> : null}
         <View className="relative justify-center">
           <Input

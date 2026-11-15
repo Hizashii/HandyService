@@ -11,6 +11,9 @@ import type { ReactNode } from 'react';
 
 import { BrandMark } from '@/components/layout/brand-mark';
 import { Text } from '@/components/ui/text';
+import { Image } from 'expo-image';
+import { photography } from '@/lib/theme/photography';
+import { useThemeColor } from 'heroui-native/hooks';
 
 export function AuthShell({
   title,
@@ -30,18 +33,21 @@ export function AuthShell({
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', paddingHorizontal: 24, paddingVertical: 40 }}>
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 24, paddingTop: 24, paddingBottom: 32 }}>
           <View className="mx-auto w-full max-w-[520px] gap-6">
-            <View className="gap-8">
+            <View className="gap-6">
               <View className="flex-row items-center justify-between">
-                <BrandMark compact />
+                <BrandMark />
+              </View>
+              <View className="overflow-hidden rounded-tl-[52px] rounded-tr-2xl rounded-bl-2xl rounded-br-[52px] bg-surface-muted">
+                <Image source={photography.home} contentFit="cover" style={{ width: '100%', height: eyebrow === 'LOG IND' ? 182 : 128 }} accessible={false} />
               </View>
               <View className="gap-2">
-                {eyebrow ? <Text className="text-xs font-bold uppercase tracking-[3px] text-brand">{eyebrow}</Text> : null}
+                {eyebrow ? <Text className="text-[10px] leading-4 font-bold uppercase tracking-[3px] text-text-secondary">{eyebrow}</Text> : null}
                 <Text variant="display" className="max-w-[360px]">
                   {title}
                 </Text>
-                <Text className="max-w-[420px] text-base leading-6 text-text-secondary">{subtitle}</Text>
+                <Text className="max-w-[420px] text-[14px] leading-[22px] text-text-secondary">{subtitle}</Text>
               </View>
             </View>
             <View className="gap-4">{children}</View>
@@ -63,7 +69,7 @@ export function AuthField({
 }) {
   return (
     <TextField isRequired isInvalid={Boolean(error)} className="gap-2">
-      <Label>{label}</Label>
+      <Label className="font-semibold text-[13px] text-foreground">{label}</Label>
       {children}
       {error ? <FieldError>{error}</FieldError> : null}
     </TextField>
@@ -71,7 +77,7 @@ export function AuthField({
 }
 
 export function AuthInput({ className, ...props }: TextInputProps & { className?: string }) {
-  return <HeroInput {...props} className={`min-h-13 rounded-2xl border border-border bg-surface px-4 font-sans text-base ${className ?? ''}`} />;
+  return <HeroInput {...props} className={`min-h-[54px] rounded-xl border border-border bg-field px-4 font-sans text-base shadow-none ${className ?? ''}`} />;
 }
 
 export function AuthButton({
@@ -85,6 +91,7 @@ export function AuthButton({
   loading?: boolean;
   variant?: 'primary' | 'secondary' | 'outline' | 'danger';
 }) {
+  const spinnerColor = useThemeColor(variant === 'primary' ? 'accent-foreground' : 'foreground');
   return (
     <HeroButton
       variant={variant}
@@ -94,8 +101,8 @@ export function AuthButton({
         void Haptics.selectionAsync();
         onPress();
       }}
-      className="min-h-13 rounded-2xl">
-      {loading ? <Spinner size="sm" color={variant === 'primary' ? 'accent' : 'default'} /> : <HeroButton.Label>{label}</HeroButton.Label>}
+      className="min-h-[52px] rounded-xl shadow-none">
+      {loading ? <Spinner size="sm" color={spinnerColor} /> : <HeroButton.Label>{label}</HeroButton.Label>}
     </HeroButton>
   );
 }

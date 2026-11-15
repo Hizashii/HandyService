@@ -1,7 +1,7 @@
 import { CalendarDays, Check, ChevronLeft, ChevronRight, ClipboardList, Hammer, Leaf, MapPin, SprayCan, Truck, Wrench } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeInRight, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { Alert } from 'heroui-native/alert';
@@ -21,6 +21,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion';
 import { useAuth } from '@/auth/AuthContext';
 import { marketplace } from '@/lib/api/marketplace';
 import { AuthError } from '@/components/auth/AuthUI';
+import type { ServiceImage } from '@/lib/theme/photography';
 
 const steps = ['Kategori', 'Beskrivelse', 'Tid & sted', 'Gennemse'];
 const categoryOptions = [
@@ -107,7 +108,7 @@ export default function CreateTaskScreen() {
             <Text className="text-xs font-bold uppercase tracking-[2px] text-brand">TRIN {step + 1} AF {steps.length}</Text>
             <Text className="text-xs font-semibold text-text-secondary">{steps[step]}</Text>
           </View>
-          <View className="h-1.5 overflow-hidden rounded-full bg-surface-muted">
+          <View className="h-1 overflow-hidden rounded-full bg-border">
             <Animated.View className="h-full w-full origin-left rounded-full bg-brand" style={progressStyle} />
           </View>
         </View>
@@ -135,6 +136,8 @@ export default function CreateTaskScreen() {
 }
 
 function CategoryStep({ value, error, onChange }: { value: string; error?: string; onChange: (value: string) => void }) {
+  const { width, fontScale } = useWindowDimensions();
+  const useTwoColumns = width < 360 || fontScale > 1.2;
   return (
     <View className="gap-3">
       <View className="gap-2">
@@ -143,8 +146,8 @@ function CategoryStep({ value, error, onChange }: { value: string; error?: strin
       </View>
       <View className="flex-row flex-wrap gap-3">
         {categoryOptions.map((item) => (
-          <View key={item.id} className="w-[47%]">
-            <ServiceCategoryCard label={item.label} icon={item.icon} className={value === item.id ? 'border-2 border-brand bg-accent-soft' : ''} onPress={() => onChange(item.id)} />
+          <View key={item.id} className={useTwoColumns ? 'w-[47%] grow' : 'w-[30.8%] grow'}>
+            <ServiceCategoryCard compact label={item.label} icon={item.icon} image={item.id as ServiceImage} selected={value === item.id} onPress={() => onChange(item.id)} />
           </View>
         ))}
       </View>

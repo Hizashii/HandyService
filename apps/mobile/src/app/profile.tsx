@@ -24,12 +24,12 @@ export default function ProfileScreen() {
   return (
     <View className="flex-1"><Screen title="Profil" subtitle="Din konto, dine valg og din HelpDK-rolle.">
       <Card className="flex-row items-center gap-4 rounded-3xl p-5">
-        <Avatar size="lg" color="accent"><Avatar.Fallback><UserRound size={24} /></Avatar.Fallback></Avatar>
+        <Avatar size="lg" color="default" className="border border-border bg-surface-muted"><Avatar.Fallback><Icon as={UserRound} size={24} className="text-brand-dark" strokeWidth={1.6} /></Avatar.Fallback></Avatar>
         <View className="flex-1 gap-1"><Text variant="h2">{isProvider ? 'Hjælperprofil' : 'Kundeprofil'}</Text><Text className="text-text-secondary">{user.email}</Text></View>
       </Card>
 
       {isProvider ? (
-        <Card className="gap-3 rounded-3xl border-0 bg-accent-soft p-5">
+        <Card className="gap-4 rounded-2xl border border-border bg-surface p-5">
           <View className="flex-row items-center gap-3"><View className="h-10 w-10 items-center justify-center rounded-2xl bg-surface"><Icon as={BriefcaseBusiness} size={19} className="text-brand" /></View><View className="flex-1"><Text variant="h3">Din hjælperportal</Text><Text className="text-sm text-text-secondary">Opgaver, tilbud og serviceområder samlet ét sted.</Text></View></View>
           <Button onPress={() => router.push('/provider')}><Button.Label>Åbn hjælperportal</Button.Label><Icon as={ChevronRight} size={18} className="text-accent-foreground" /></Button>
         </Card>
@@ -52,7 +52,7 @@ export default function ProfileScreen() {
 function SettingsRow({ icon: IconComponent, title, description, onPress }: { icon: typeof Bell; title: string; description: string; onPress?: () => void }) {
   return (
     <Pressable accessibilityRole="button" disabled={!onPress} accessibilityState={{ disabled: !onPress }} className="min-h-[68px] flex-row items-center gap-3 border-b border-border py-3 active:opacity-70" onPress={onPress}>
-      <View className="h-10 w-10 items-center justify-center rounded-xl bg-surface-muted"><Icon as={IconComponent} size={19} className="text-brand" /></View>
+      <View className="h-10 w-10 items-center justify-center"><Icon as={IconComponent} size={21} className="text-brand-dark" strokeWidth={1.6} /></View>
       <View className="flex-1 gap-0.5"><Text className="font-semibold">{title}</Text><Text className="text-sm text-text-secondary">{description}</Text></View>
       <Icon as={ChevronRight} size={18} className="text-text-secondary" />
     </Pressable>

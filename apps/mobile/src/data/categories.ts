@@ -1,15 +1,15 @@
 import type { CategoryId, SourceRating } from './types';
 
 export const categories: { id: CategoryId; label: string }[] = [
-  { id: 'carpentry', label: 'Carpentry' },
-  { id: 'cleaning', label: 'Cleaning' },
-  { id: 'window-cleaning', label: 'Windows' },
-  { id: 'plumbing', label: 'Plumbing' },
-  { id: 'electrical', label: 'Electrical' },
-  { id: 'painting', label: 'Painting' },
-  { id: 'gardening', label: 'Gardening' },
-  { id: 'moving', label: 'Moving' },
-  { id: 'repairs', label: 'Repairs' },
+  { id: 'carpentry', label: 'Tømrer & montering' },
+  { id: 'cleaning', label: 'Rengøring' },
+  { id: 'window-cleaning', label: 'Vinduespudsning' },
+  { id: 'plumbing', label: 'VVS' },
+  { id: 'electrical', label: 'El & installation' },
+  { id: 'painting', label: 'Malerarbejde' },
+  { id: 'gardening', label: 'Have & udendørs' },
+  { id: 'moving', label: 'Flytning' },
+  { id: 'repairs', label: 'Håndværk & reparation' },
 ];
 
 export const getCategory = (id: CategoryId) => categories.find((c) => c.id === id);

@@ -23,7 +23,7 @@ export function BrandMark({ compact = false }: { compact?: boolean }) {
 function TextWordmark({ compact }: { compact: boolean }) {
   return (
     <RNText className={compact ? 'font-extrabold text-lg text-foreground' : 'font-extrabold text-2xl text-foreground'}>
-      Help<RNText className="text-brand">DK</RNText>
+      HelpDK
     </RNText>
   );
 }

@@ -20,7 +20,7 @@
   --color-input: var(--border);
   --color-destructive: var(--danger);
   --color-accent-soft: var(--surface-tertiary);
-  --radius: 0.75rem;
+  --radius: 0.5rem;
 }
 
 @utility font-medium { font-family: 'Manrope_500Medium'; font-weight: 500; }
@@ -36,65 +36,65 @@
 @layer theme {
   :root {
     @variant light {
-      --background: #fafaf7;
+      --background: #faf8f4;
       --foreground: #171c19;
       --surface: #ffffff;
       --surface-foreground: #171c19;
-      --surface-secondary: #f4f7f3;
+      --surface-secondary: #f3efe7;
       --surface-secondary-foreground: #171c19;
-      --surface-tertiary: #e6f3ec;
+      --surface-tertiary: #eef2e8;
       --surface-tertiary-foreground: #075c43;
       --overlay: #ffffff;
       --overlay-foreground: #171c19;
-      --muted: #747d76;
-      --default: #f2f5f1;
+      --muted: #71736c;
+      --default: #f3efe7;
       --default-foreground: #171c19;
       --accent: #087f5b;
       --accent-foreground: #ffffff;
-      --field-background: #ffffff;
+      --field-background: #fffefb;
       --field-foreground: #171c19;
-      --field-placeholder: #747d76;
-      --field-border: #e6eae5;
+      --field-placeholder: #818179;
+      --field-border: #deded5;
       --success: #087f5b;
       --success-foreground: #ffffff;
       --danger: #c43d3d;
       --danger-foreground: #ffffff;
-      --border: #e6eae5;
-      --separator: #d5ddd6;
+      --border: #e5e1d9;
+      --separator: #dedad2;
       --focus: #087f5b;
       --link: #075c43;
-      --radius: 0.75rem;
+      --radius: 0.5rem;
     }
 
     @variant dark {
-      --background: #0e1713;
+      --background: #191b19;
       --foreground: #f3f8f4;
-      --surface: #16221c;
+      --surface: #222522;
       --surface-foreground: #f3f8f4;
-      --surface-secondary: #1d2b24;
+      --surface-secondary: #2c2f2b;
       --surface-secondary-foreground: #f3f8f4;
-      --surface-tertiary: #173b2d;
+      --surface-tertiary: #2e372f;
       --surface-tertiary-foreground: #dff3e8;
-      --overlay: #1d2b24;
+      --overlay: #222522;
       --overlay-foreground: #f3f8f4;
       --muted: #a3b1a8;
-      --default: #1d2b24;
+      --default: #2c2f2b;
       --default-foreground: #f3f8f4;
       --accent: #2ea875;
       --accent-foreground: #07130d;
-      --field-background: #16221c;
+      --field-background: #222522;
       --field-foreground: #f3f8f4;
       --field-placeholder: #a3b1a8;
-      --field-border: #304239;
+      --field-border: #42463f;
       --success: #2ea875;
       --success-foreground: #07130d;
       --danger: #ef7777;
       --danger-foreground: #220909;
-      --border: #304239;
+      --border: #42463f;
       --separator: #3d5045;
       --focus: #2ea875;
       --link: #8fe0b7;
-      --radius: 0.75rem;
+      --radius: 0.5rem;
     }
   }
 }
