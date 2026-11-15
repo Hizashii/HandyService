@@ -27,6 +27,13 @@ const FETCH_RADIUS_KM = 35
 /** First, small look around the user's exact position so results can be shown while the full area loads. */
 const QUICK_RADIUS_KM = 8
 const QUICK_TIMEOUT_MS = 20_000
+/**
+ * Cloudflare cancels background (waitUntil) work 30s after the response is sent, and the response goes
+ * out as soon as the quick look finishes. Cap the full fetch so it ends, and saves, inside that window
+ * instead of being cut off mid-way; if it cannot finish in time, the quick results stay cached and the
+ * next search tries again.
+ */
+const FULL_TIMEOUT_MS = 28_000
 /** After a failed refresh, serve saved data for this long before asking the upstream again. */
 const RETRY_AFTER_FAILURE_MS = 60_000
 
@@ -96,7 +103,8 @@ function refreshArea(
       cell.lat,
       cell.lng,
       FETCH_RADIUS_KM,
-      exhaustive
+      exhaustive,
+      { timeoutMs: FULL_TIMEOUT_MS }
     )
     await saveArea(db, cell.key, cacheKey, providers, now, {
       categories: fetchedCategories,
