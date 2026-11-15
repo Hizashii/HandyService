@@ -36,9 +36,9 @@ export const privacy: LegalDoc = {
       heading: 'Hvilke oplysninger behandler vi?',
       bullets: [
         'Konto: din e-mailadresse, din rolle (kunde eller hjælper) og tidspunktet for oprettelsen. Din adgangskode gemmes aldrig i klartekst, kun som en saltet hash (PBKDF2-SHA-256).',
-        'Login: et tilfældigt sessions-token. På vores server gemmes kun en hash af tokenet, og sessionen udløber efter 30 dage.',
+        'Login: et tilfældigt sessions-token. På vores server gemmes kun en hash af tokenet, og sessionen er gyldig i højst 30 dage.',
         'Opgaver og tilbud: det, du selv skriver, fx titel, beskrivelse, pris og besked. Skriv ikke følsomme oplysninger (fx helbredsforhold eller CPR-nummer) i opgaver eller beskeder.',
-        'Misbrugsbeskyttelse: din IP-adresse og din e-mailadresse bruges til midlertidigt at tælle login- og oprettelsesforsøg (højst 5 forsøg pr. 15 minutter). Tællerne fjernes løbende, når tidsrummet er udløbet.',
+        'Misbrugsbeskyttelse: din IP-adresse og din e-mailadresse bruges til midlertidigt at tælle login- og oprettelsesforsøg (højst 5 forsøg pr. 15 minutter). Tællerne gælder i 15 minutter og ryddes op ved senere forsøg.',
         'Din placering: hvis du giver tilladelse, bruger vi din enheds placering, ellers den by du selv skriver, til at finde virksomheder i nærheden. Placeringen sendes til vores server som søgepunkt og gemmes ikke på din konto.',
       ],
     },
@@ -78,8 +78,8 @@ export const privacy: LegalDoc = {
       heading: 'Hvor længe gemmer vi oplysningerne?',
       bullets: [
         'Konto, opgaver og tilbud: indtil du beder os slette dem.',
-        'Sessioner: højst 30 dage, og de ophører, når du logger ud.',
-        'Login-tællere: kun så længe tidsrummet på 15 minutter løber.',
+        'Sessioner: en session er gyldig i højst 30 dage og ophører, når du logger ud. Udløbne sessioner kan ikke bruges, men selve registreringen kan blive liggende i databasen, indtil den ryddes op. Vi sletter den på din anmodning.',
+        'Login-tællere: tællerne gælder i 15 minutter. De ryddes op ved senere login-forsøg og kan derfor blive liggende lidt længere i databasen.',
         'Virksomhedsoplysninger: opdateres løbende. Oplysninger, der ikke længere bekræftes, fjernes efter cirka 14 dage.',
       ],
     },
