@@ -7,7 +7,7 @@
     {
       "binding": "DB",
       "database_name": "helpdk",
-      "database_id": "",
+      "database_id": "00d8955e-cde2-4553-a754-d797a9308b80",
       "migrations_dir": "migrations"
     }
   ]
