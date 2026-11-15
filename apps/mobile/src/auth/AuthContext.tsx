@@ -49,6 +49,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
+    // Restoring from SecureStore is the external side effect this provider owns.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void restoreSession();
   }, [restoreSession]);
 

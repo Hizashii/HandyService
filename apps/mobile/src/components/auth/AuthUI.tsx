@@ -69,8 +69,6 @@ export function AuthError({ message }: { message: string | null }) {
   return <ThemedText style={styles.error}>{message}</ThemedText>;
 }
 
-export const authStyles = styles;
-
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
@@ -147,3 +145,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#e8efff',
   },
 });
+
+export const authStyles = styles;
