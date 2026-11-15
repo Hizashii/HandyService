@@ -28,7 +28,7 @@ async function request<T>(path: string, options: RequestInit = {}, token?: strin
   try {
     response = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
   } catch {
-    throw new ApiError('Unable to reach HelpDK. Check your connection.', 0);
+    throw new ApiError('Unable to reach Håndmatch. Check your connection.', 0);
   }
 
   const payload = await response.json().catch(() => null);

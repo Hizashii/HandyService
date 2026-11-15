@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="t d">
-  <title id="t">HelpDK architecture</title>
+  <title id="t">Håndmatch architecture</title>
   <desc id="d">The Expo mobile app talks to a Hono API on Cloudflare Workers, which stores data in D1 and reads OpenStreetMap, Nominatim and provider websites.</desc>
   <defs>
     <marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#087f5b"/></marker>
@@ -24,7 +24,7 @@
   <rect width="1200" height="560" fill="#fafaf7"/>
 
   <g filter="url(#sh)"><rect class="g" x="40" y="150" width="270" height="260" rx="22"/></g>
-  <text class="h" x="64" y="190">HelpDK app</text>
+  <text class="h" x="64" y="190">Håndmatch app</text>
   <text class="s" x="64" y="214">Expo · React Native</text>
   <text class="s" x="64" y="246">• HeroUI Native + Uniwind</text>
   <text class="s" x="64" y="270">• expo-router screens</text>
@@ -34,7 +34,7 @@
   <text class="s" x="64" y="366">• Saved providers</text>
 
   <g filter="url(#sh)"><rect class="g" x="430" y="60" width="340" height="440" rx="22"/></g>
-  <text class="h" x="456" y="98">HelpDK API</text>
+  <text class="h" x="456" y="98">Håndmatch API</text>
   <text class="s" x="456" y="120">Hono on Cloudflare Workers</text>
   <rect class="box" x="456" y="144" width="288" height="56" rx="12"/>
   <text class="h2" x="472" y="168">/api/auth</text><text class="s" x="472" y="188">register, login, sessions</text>

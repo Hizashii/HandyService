@@ -1,6 +1,6 @@
-# Deploying HelpDK
+# Deploying Håndmatch
 
-HelpDK has two parts that deploy separately, both on Cloudflare and both free to start:
+Håndmatch has two parts that deploy separately, both on Cloudflare and both free to start:
 
 | Part | Where it runs | Needs |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ Wrangler prints the API address, for example `https://api.<your-subdomain>.worke
 
 ```bash
 curl https://api.<your-subdomain>.workers.dev/
-# {"name":"HelpDK API","ok":true}
+# {"name":"Håndmatch API","ok":true}
 
 curl "https://api.<your-subdomain>.workers.dev/api/providers?lat=55.4765&lng=8.4594&limit=3"
 ```
@@ -74,12 +74,14 @@ This writes a static site to `apps/mobile/dist`. Publish it:
 
 ```bash
 # first time only: create the Pages project
-npx wrangler@4 pages project create helpdk-web --production-branch main
+npx wrangler@4 pages project create haandmatch-web --production-branch main
 
 EXPO_PUBLIC_API_URL=https://api.<your-subdomain>.workers.dev npm run deploy:web
 ```
 
-`deploy:web` builds and uploads in one go. Wrangler prints the address, for example `https://helpdk-web.pages.dev`. Open it on your computer and your phone.
+> **Renamed from an earlier deploy?** The Pages project is now called `haandmatch-web` (it was `helpdk-web`). Cloudflare treats that as a new project with a new address, so run the `project create` line above once. The old `helpdk-web` project keeps running until you delete it in the Cloudflare dashboard.
+
+`deploy:web` builds and uploads in one go. Wrangler prints the address, for example `https://haandmatch-web.pages.dev`. Open it on your computer and your phone.
 
 Why it works as a plain static site: `apps/mobile/app.json` sets the web output to `single` (one page that handles all routes in the browser). Cloudflare Pages serves that page for deep links such as `/login`, so refreshing any screen works.
 
@@ -98,7 +100,7 @@ It is a website, not a native app: no push notifications, and the browser decide
 
 ## Optional: your own domain
 
-In the Cloudflare dashboard, add a custom domain to the Pages project (`helpdk-web`) and, separately, a route or custom domain to the API Worker. Then set `EXPO_PUBLIC_API_URL` to the API's new address and redeploy the web app.
+In the Cloudflare dashboard, add a custom domain to the Pages project (`haandmatch-web`) and, separately, a route or custom domain to the API Worker. Then set `EXPO_PUBLIC_API_URL` to the API's new address and redeploy the web app.
 
 ## Later: store apps
 

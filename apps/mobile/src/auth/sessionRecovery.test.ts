@@ -24,14 +24,14 @@ describe('restoreSessionState', () => {
       },
       getMe: async () => {
         attempts += 1;
-        if (attempts === 1) throw new ApiError('Unable to reach HelpDK. Check your connection.', 0);
+        if (attempts === 1) throw new ApiError('Unable to reach Håndmatch. Check your connection.', 0);
         return { user };
       },
     };
 
     await expect(restoreSessionState(dependencies)).resolves.toMatchObject({
       status: 'recoverable-error',
-      error: 'Unable to reach HelpDK. Check your connection.',
+      error: 'Unable to reach Håndmatch. Check your connection.',
     });
     expect(cleared).toBe(false);
 

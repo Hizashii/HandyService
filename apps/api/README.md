@@ -1,4 +1,4 @@
-# HelpDK API
+# Håndmatch API
 
 Cloudflare Worker API backed by D1. Authentication uses salted PBKDF2 password hashes, opaque session tokens, hashed session storage, expiry, revocation, and server-side role and ownership checks.
 

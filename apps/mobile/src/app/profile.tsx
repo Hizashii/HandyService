@@ -22,7 +22,7 @@ export default function ProfileScreen() {
 
   const isProvider = user.role === 'provider';
   return (
-    <View className="flex-1"><Screen title="Profil" subtitle="Din konto, dine valg og din HelpDK-rolle.">
+    <View className="flex-1"><Screen title="Profil" subtitle="Din konto, dine valg og din Håndmatch-rolle.">
       <Card className="flex-row items-center gap-4 rounded-3xl p-5">
         <Avatar size="lg" color="default" className="border border-border bg-surface-muted"><Avatar.Fallback><Icon as={UserRound} size={24} className="text-brand-dark" strokeWidth={1.6} /></Avatar.Fallback></Avatar>
         <View className="flex-1 gap-1"><Text variant="h2">{isProvider ? 'Hjælperprofil' : 'Kundeprofil'}</Text><Text className="text-text-secondary">{user.email}</Text></View>

@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/hero.svg" alt="HelpDK: local help for everyday jobs" width="100%" />
+<img src="docs/images/hero.svg" alt="Håndmatch: local help for everyday jobs" width="100%" />
 
 <br />
 
@@ -116,7 +116,7 @@ You see the nearest providers in **about 3 seconds**. The rest of the area loads
 Providers are collected from open map data across **9 service categories**, not typed in by hand.
 
 ### 📬 Contact details filled in for you
-Open map data rarely lists phone numbers or emails, so HelpDK reads them from each business's **own public website** (respecting `robots.txt`).
+Open map data rarely lists phone numbers or emails, so Håndmatch reads them from each business's **own public website** (respecting `robots.txt`).
 
 ### 🧰 Tasks and offers
 Post a job, receive offers from providers, and accept the one you like.
@@ -152,7 +152,7 @@ Each category is recognised from OpenStreetMap tags, with Danish keyword fallbac
 sequenceDiagram
     autonumber
     actor You
-    participant App as HelpDK app
+    participant App as Håndmatch app
     participant API as API (Cloudflare Worker)
     participant DB as D1 cache
     participant OSM as OpenStreetMap mirrors
@@ -188,7 +188,7 @@ sequenceDiagram
 
 <br />
 
-OpenStreetMap's public servers are free but shared, so they can be slow or busy. HelpDK works around that without paying for anything:
+OpenStreetMap's public servers are free but shared, so they can be slow or busy. Håndmatch works around that without paying for anything:
 
 - **Hedged mirrors.** The fastest mirror is asked first; if it has not answered within 4 seconds, the next one is asked too. The first good answer wins and the rest are cancelled. HTTP 200 answers that carry a runtime-error remark are never trusted.
 - **Quick look, then the full area.** A small 8 km query answers first. The full 35 km refresh keeps running in the background (capped at 28 s to fit Cloudflare's background window).
@@ -391,7 +391,7 @@ The tests cover the parts that are easy to get subtly wrong: the hedged mirror r
 - **Provider data** is © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright), available under the [ODbL](https://opendatacommons.org/licenses/odbl/). OpenStreetMap does not include ratings or prices, so cards say "No ratings yet".
 - **Geocoding** uses [Nominatim](https://operations.osmfoundation.org/policies/nominatim/) with an identifying User-Agent and a day of caching, as its usage policy asks.
 - **Provider websites** are read only for public contact details, while honouring `robots.txt`, with strict size and time limits and a monthly re-check.
-- The public Overpass servers are shared community infrastructure: HelpDK caches heavily to be a good citizen. For heavy production use, plan on a self-hosted instance or a paid source (see the roadmap).
+- The public Overpass servers are shared community infrastructure: Håndmatch caches heavily to be a good citizen. For heavy production use, plan on a self-hosted instance or a paid source (see the roadmap).
 
 ---
 
