@@ -1,3 +1,4 @@
+import type { D1Database } from '@cloudflare/workers-types'
 import { Hono } from 'hono'
 import { z } from 'zod'
 
@@ -25,6 +26,50 @@ const searchQuery = z.object({
   limit: z.coerce.number().int().min(1).max(MAX_RESULTS).default(MAX_RESULTS),
 })
 
+/**
+ * Refreshes in progress, keyed by area + category. The Home and Search screens ask for the same
+ * area at the same moment, and the free upstream is slow and throttles parallel queries, so
+ * identical requests share one fetch instead of each starting their own.
+ */
+const inFlight = new Map<string, Promise<void>>()
+
+function refreshArea(
+  db: D1Database,
+  cell: { key: string; lat: number; lng: number },
+  cacheKey: string,
+  categoryId: CategoryId | undefined,
+  now: number
+): Promise<void> {
+  const flightKey = `${cell.key}|${cacheKey}`
+  const existing = inFlight.get(flightKey)
+  if (existing) return existing
+
+  const run = (async () => {
+    const fetchedCategories = categoryId ? [categoryId] : CATEGORY_IDS
+    // A single category runs every rule for it. The broad all-categories search (the Home screen)
+    // uses only the fast tag rules, which keeps it to one query.
+    const exhaustive = categoryId !== undefined
+    const { providers, complete } = await fetchProviders(
+      fetchedCategories,
+      cell.lat,
+      cell.lng,
+      FETCH_RADIUS_KM,
+      exhaustive
+    )
+    await saveArea(db, cell.key, cacheKey, providers, now, {
+      categories: fetchedCategories,
+      lat: cell.lat,
+      lng: cell.lng,
+      radiusKm: FETCH_RADIUS_KM,
+      // Without the name rules "not returned" does not mean "gone", so only exhaustive fetches may delete.
+      complete: complete && exhaustive,
+    })
+  })().finally(() => inFlight.delete(flightKey))
+
+  inFlight.set(flightKey, run)
+  return run
+}
+
 /** Service providers near a location: GET /api/providers and GET /api/providers/:id */
 export const providerRoutes = new Hono<AppEnv>()
 
@@ -44,25 +89,7 @@ providerRoutes.get('/', async (c) => {
   let upstreamFailed = false
   if (!(await isAreaFresh(c.env.DB, cell.key, cacheKey, now))) {
     try {
-      const fetchedCategories = categoryId ? [categoryId] : CATEGORY_IDS
-      // A single category runs every rule for it. The broad all-categories search (the Home screen)
-      // uses only the fast tag rules, so it stays quick even in a big city.
-      const exhaustive = categoryId !== undefined
-      const { providers: fetched, complete } = await fetchProviders(
-        fetchedCategories,
-        cell.lat,
-        cell.lng,
-        FETCH_RADIUS_KM,
-        exhaustive
-      )
-      await saveArea(c.env.DB, cell.key, cacheKey, fetched, now, {
-        categories: fetchedCategories,
-        lat: cell.lat,
-        lng: cell.lng,
-        radiusKm: FETCH_RADIUS_KM,
-        // Without the name rules "not returned" does not mean "gone", so only exhaustive fetches may delete.
-        complete: complete && exhaustive,
-      })
+      await refreshArea(c.env.DB, cell, cacheKey, categoryId, now)
     } catch (err) {
       // Serve whatever we already have (possibly stale) rather than failing the search.
       console.error('Upstream fetch failed', err)

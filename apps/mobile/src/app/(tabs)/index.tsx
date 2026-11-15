@@ -15,7 +15,7 @@ import { useProviders } from '@/hooks/use-providers';
 export default function HomeScreen() {
   const router = useRouter();
   const { place } = useLocation();
-  const { providers, loading, error } = useProviders();
+  const { providers, loading, error, stale } = useProviders();
 
   return (
     <Screen
@@ -53,6 +53,7 @@ export default function HomeScreen() {
           providers={providers.slice(0, 5)}
           loading={loading}
           error={error}
+          stale={stale}
           hasLocation={place !== null}
         />
       </View>

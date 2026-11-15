@@ -4,7 +4,8 @@ import type { Provider } from '@/data/types';
 import { useLocation } from '@/hooks/use-location';
 import { searchProviders } from '@/lib/api';
 
-type Result = { key: string; providers: Provider[]; error: string | null };
+/** `stale`: the server could not refresh this area and answered from saved data, which may be incomplete. */
+type Result = { key: string; providers: Provider[]; error: string | null; stale: boolean };
 
 /** Providers near the user's current place, optionally filtered by category and name. */
 export function useProviders({ category, q }: { category?: string; q?: string } = {}) {
@@ -24,10 +25,15 @@ export function useProviders({ category, q }: { category?: string; q?: string } 
     const timer = setTimeout(
       () => {
         searchProviders({ lat, lng }, { category, q: name }, controller.signal)
-          .then((res) => setResult({ key, providers: res.providers, error: null }))
+          .then((res) => setResult({ key, providers: res.providers, error: null, stale: res.stale }))
           .catch((err) => {
             if (controller.signal.aborted) return;
-            setResult({ key, providers: [], error: err instanceof Error ? err.message : 'Something went wrong' });
+            setResult({
+              key,
+              providers: [],
+              error: err instanceof Error ? err.message : 'Something went wrong',
+              stale: false,
+            });
           });
       },
       name ? 400 : 0
@@ -43,5 +49,6 @@ export function useProviders({ category, q }: { category?: string; q?: string } 
     providers: current?.providers ?? [],
     loading: key !== null && current === null,
     error: current?.error ?? null,
+    stale: current?.stale ?? false,
   };
 }
