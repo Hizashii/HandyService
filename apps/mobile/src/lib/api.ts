@@ -51,16 +51,16 @@ export function searchProviders(
   signal?: AbortSignal
 ) {
   return get<{ providers: Provider[]; radiusKm: number; stale: boolean }>(
-    '/providers',
+    '/api/providers',
     { lat: at.lat, lng: at.lng, category: opts.category, q: opts.q, radius: opts.radius },
     signal
   );
 }
 
 export function getProvider(id: string, at?: Coords, signal?: AbortSignal) {
-  return get<{ provider: Provider }>(`/providers/${encodeURIComponent(id)}`, { lat: at?.lat, lng: at?.lng }, signal);
+  return get<{ provider: Provider }>(`/api/providers/${encodeURIComponent(id)}`, { lat: at?.lat, lng: at?.lng }, signal);
 }
 
 export function geocode(q: string, signal?: AbortSignal) {
-  return get<{ places: Place[] }>('/geocode', { q }, signal);
+  return get<{ places: Place[] }>('/api/geocode', { q }, signal);
 }

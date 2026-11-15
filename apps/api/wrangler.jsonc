@@ -6,18 +6,35 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "handyservice",
-      // Placeholder: replace with the id printed by `npx wrangler d1 create handyservice`
-      // before deploying. Local `wrangler dev` does not need a real id.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_name": "helpdk",
+      "database_id": "00d8955e-cde2-4553-a754-d797a9308b80",
       "migrations_dir": "migrations"
     }
   ],
   "vars": {
-    // Comma-separated ISO country codes the /geocode endpoint is limited to.
+    // Comma-separated ISO country codes the /api/geocode endpoint is limited to.
     "GEOCODE_COUNTRIES": "dk"
-  },
-  "observability": {
-    "enabled": true
   }
+  // "compatibility_flags": [
+  //   "nodejs_compat"
+  // ],
+  // "kv_namespaces": [
+  //   {
+  //     "binding": "MY_KV_NAMESPACE",
+  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  //   }
+  // ],
+  // "r2_buckets": [
+  //   {
+  //     "binding": "MY_BUCKET",
+  //     "bucket_name": "my-bucket"
+  //   }
+  // ],
+  // "ai": {
+  //   "binding": "AI"
+  // },
+  // "observability": {
+  //   "enabled": true,
+  //   "head_sampling_rate": 1
+  // }
 }

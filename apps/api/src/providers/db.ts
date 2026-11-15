@@ -1,5 +1,7 @@
-import { boundingBox, haversineKm } from './geo'
-import type { SourceProvider } from './sources/overpass'
+import type { D1Database } from '@cloudflare/workers-types'
+
+import { boundingBox, haversineKm } from '../geo'
+import type { SourceProvider } from '../sources/overpass'
 
 export type Rating = { source: string; rating: number; reviewCount: number; url: string | null }
 
