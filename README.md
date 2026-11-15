@@ -45,6 +45,7 @@ Call or email them in one tap.
 | **Work on the app (front end)** | [`apps/mobile`](apps/mobile) · [its README](apps/mobile/README.md) · [design notes](apps/mobile/DESIGN.md) |
 | **Work on the server (back end)** | [`apps/api`](apps/api) · [provider search](apps/api/src/providers/routes.ts) · [Overpass client](apps/api/src/sources/overpass.ts) |
 | **Understand how providers are found** | [How it works](#-how-it-works) · [categories](apps/api/src/categories.ts) |
+| **Put it online** | [Deploying (free, web version)](docs/DEPLOY.md) |
 | **Call the API** | [API reference](#-api-reference) |
 | **See what is planned** | [Roadmap](#-roadmap) |
 
