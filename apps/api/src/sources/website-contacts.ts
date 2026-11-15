@@ -144,15 +144,39 @@ async function readText(res: Response): Promise<string> {
   return text;
 }
 
-async function fetchHtml(url: URL, fetchImpl: typeof fetch): Promise<string> {
-  const res = await fetchImpl(url, {
-    headers: { 'user-agent': USER_AGENT, accept: 'text/html,application/xhtml+xml' },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-  });
-  // A redirect must not lead somewhere private or off to a non-web scheme.
-  if (!res.ok || !isPublicHttpUrl(res.url || url.href)) return '';
-  return readText(res);
+const MAX_REDIRECTS = 4
+
+/**
+ * GET that follows redirects by hand, so every destination is checked BEFORE it is requested. A site
+ * we were told is public must not be able to bounce us to an internal address. Returns the final URL
+ * and response, or null when a hop is not a public http(s) URL or there are too many hops.
+ */
+async function safeGet(
+  start: URL,
+  headers: Record<string, string>,
+  fetchImpl: typeof fetch
+): Promise<{ res: Response; url: URL } | null> {
+  let url = start;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    if (!isPublicHttpUrl(url.href)) return null;
+    const res = await fetchImpl(url, { headers, redirect: 'manual', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    const location = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
+    if (!location) return { res, url };
+    void res.body?.cancel().catch(() => {});
+    try {
+      url = new URL(location, url);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** The page's HTML and the URL it was finally served from (after any redirects). */
+async function fetchHtml(url: URL, fetchImpl: typeof fetch): Promise<{ html: string; url: URL }> {
+  const got = await safeGet(url, { 'user-agent': USER_AGENT, accept: 'text/html,application/xhtml+xml' }, fetchImpl);
+  if (!got || !got.res.ok) return { html: '', url };
+  return { html: await readText(got.res), url: got.url };
 }
 
 /** Whether the site's robots.txt asks all robots to stay out of the whole site. */
@@ -176,23 +200,26 @@ export async function fetchSiteContacts(website: string, fetchImpl: typeof fetch
   const none: SiteContacts = { phone: null, email: null };
   try {
     if (!isPublicHttpUrl(website)) return none;
-    const home = new URL(website);
+    const start = new URL(website);
 
-    const robots = await fetchImpl(new URL('/robots.txt', home), {
-      headers: { 'user-agent': USER_AGENT },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-    })
-      .then((r) => (r.ok ? r.text() : ''))
-      .catch(() => '');
+    const robotsGet = await safeGet(new URL('/robots.txt', start), { 'user-agent': USER_AGENT }, fetchImpl).catch(
+      () => null
+    );
+    const robots = robotsGet?.res.ok ? await robotsGet.res.text().catch(() => '') : '';
     if (robotsBlocksAll(robots)) return none;
 
-    const homeHtml = await fetchHtml(home, fetchImpl);
-    let found = extractContacts(homeHtml);
+    const home = await fetchHtml(start, fetchImpl);
+    let found = extractContacts(home.html);
     if (!found.phone || !found.email) {
-      const contactPage = findContactPage(homeHtml, home);
+      // Resolve links against where the homepage really lives (it may redirect to www. or a subfolder).
+      const contactPage = findContactPage(home.html, home.url);
       if (contactPage) {
-        const more = extractContacts(await fetchHtml(contactPage, fetchImpl));
-        found = { phone: found.phone ?? more.phone, email: found.email ?? more.email };
+        try {
+          const more = extractContacts((await fetchHtml(contactPage, fetchImpl)).html);
+          found = { phone: found.phone ?? more.phone, email: found.email ?? more.email };
+        } catch {
+          // The optional contact page failed: keep what the homepage gave us.
+        }
       }
     }
     return found;

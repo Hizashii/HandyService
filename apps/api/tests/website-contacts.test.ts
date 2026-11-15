@@ -143,3 +143,44 @@ describe('fetchSiteContacts', () => {
     expect(await fetchSiteContacts('https://byg.dk/', boom)).toEqual({ phone: null, email: null })
   })
 })
+
+describe('fetchSiteContacts redirects and failures', () => {
+  const html = (body: string) => new Response(body, { status: 200, headers: { 'content-type': 'text/html' } })
+  const redirect = (to: string) => new Response(null, { status: 301, headers: { location: to } })
+
+  it('never requests a private address a public site redirects to', async () => {
+    const seen: string[] = []
+    const f = ((input: RequestInfo | URL) => {
+      seen.push(String(input))
+      return Promise.resolve(redirect('http://169.254.169.254/latest/meta-data'))
+    }) as typeof fetch
+    expect(await fetchSiteContacts('https://evil.dk/', f)).toEqual({ phone: null, email: null })
+    expect(seen.some((u) => u.includes('169.254'))).toBe(false)
+  })
+
+  it('stops after too many redirects', async () => {
+    const f = (() => Promise.resolve(redirect('https://loop.dk/'))) as typeof fetch
+    expect(await fetchSiteContacts('https://loop.dk/', f)).toEqual({ phone: null, email: null })
+  })
+
+  it('resolves the contact link against the redirected homepage', async () => {
+    const f = ((input: RequestInfo | URL) => {
+      const u = new URL(String(input))
+      if (u.href === 'https://byg.dk/') return Promise.resolve(redirect('https://www.byg.dk/'))
+      if (u.href === 'https://www.byg.dk/') return Promise.resolve(html('<a href="https://www.byg.dk/kontakt">k</a>'))
+      if (u.pathname === '/kontakt') return Promise.resolve(html('<a href="mailto:a@byg.dk">m</a>'))
+      return Promise.resolve(new Response('', { status: 404 }))
+    }) as typeof fetch
+    expect((await fetchSiteContacts('https://byg.dk/', f)).email).toBe('a@byg.dk')
+  })
+
+  it('keeps homepage details when the contact page fails', async () => {
+    const f = ((input: RequestInfo | URL) => {
+      const u = new URL(String(input))
+      if (u.pathname === '/') return Promise.resolve(html('<a href="/kontakt">k</a><a href="mailto:a@byg.dk">m</a>'))
+      if (u.pathname === '/kontakt') return Promise.reject(new Error('timeout'))
+      return Promise.resolve(new Response('', { status: 404 }))
+    }) as typeof fetch
+    expect(await fetchSiteContacts('https://byg.dk/', f)).toEqual({ phone: null, email: 'a@byg.dk' })
+  })
+})
