@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="t d">
+  <title id="t">HelpDK architecture</title>
+  <desc id="d">The Expo mobile app talks to a Hono API on Cloudflare Workers, which stores data in D1 and reads OpenStreetMap, Nominatim and provider websites.</desc>
+  <defs>
+    <marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#087f5b"/></marker>
+    <marker id="ag" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10z" fill="#747d76"/></marker>
+    <filter id="sh" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-color="#171c19" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+  <style>
+    text { font-family: system-ui, "Segoe UI", Helvetica, Arial, sans-serif; fill: #171c19; }
+    .h { font-size: 20px; font-weight: 700; }
+    .h2 { font-size: 16px; font-weight: 700; }
+    .s { font-size: 14px; fill: #4b554e; }
+    .l { font-size: 13px; fill: #087f5b; font-weight: 600; }
+    .box { fill: #fff; stroke: #e6eae5; stroke-width: 2; }
+    .g { fill: #e7f6f0; stroke: #087f5b; stroke-width: 2; }
+    .flow { stroke: #087f5b; stroke-width: 2.5; fill: none; stroke-dasharray: 8 6; animation: d 1.2s linear infinite; }
+    .ext { stroke: #747d76; stroke-width: 2; fill: none; stroke-dasharray: 6 6; animation: d 1.6s linear infinite; }
+    @keyframes d { to { stroke-dashoffset: -28; } }
+    @media (prefers-reduced-motion: reduce) { .flow, .ext { animation: none; } }
+  </style>
+  <rect width="1200" height="560" fill="#fafaf7"/>
+
+  <g filter="url(#sh)"><rect class="g" x="40" y="150" width="270" height="260" rx="22"/></g>
+  <text class="h" x="64" y="190">HelpDK app</text>
+  <text class="s" x="64" y="214">Expo · React Native</text>
+  <text class="s" x="64" y="246">• HeroUI Native + Uniwind</text>
+  <text class="s" x="64" y="270">• expo-router screens</text>
+  <text class="s" x="64" y="294">• GPS or a typed town</text>
+  <text class="s" x="64" y="318">• Polls while results load</text>
+  <text class="s" x="64" y="342">• Call / Email / Website</text>
+  <text class="s" x="64" y="366">• Saved providers</text>
+
+  <g filter="url(#sh)"><rect class="g" x="430" y="60" width="340" height="440" rx="22"/></g>
+  <text class="h" x="456" y="98">HelpDK API</text>
+  <text class="s" x="456" y="120">Hono on Cloudflare Workers</text>
+  <rect class="box" x="456" y="144" width="288" height="56" rx="12"/>
+  <text class="h2" x="472" y="168">/api/auth</text><text class="s" x="472" y="188">register, login, sessions</text>
+  <rect class="box" x="456" y="212" width="288" height="56" rx="12"/>
+  <text class="h2" x="472" y="236">/api/tasks · /api/offers</text><text class="s" x="472" y="256">post jobs, receive offers</text>
+  <rect class="box" x="456" y="280" width="288" height="96" rx="12" style="stroke:#087f5b"/>
+  <text class="h2" x="472" y="304">/api/providers</text>
+  <text class="s" x="472" y="324">geolocated discovery, 25 km</text>
+  <text class="s" x="472" y="344">quick look + background refresh</text>
+  <text class="s" x="472" y="364">website contact enrichment</text>
+  <rect class="box" x="456" y="388" width="288" height="56" rx="12"/>
+  <text class="h2" x="472" y="412">/api/geocode</text><text class="s" x="472" y="432">town or postcode to coordinates</text>
+  <text class="s" x="456" y="476">zod validation · rate limiting · tests</text>
+
+  <g filter="url(#sh)">
+    <rect class="box" x="860" y="60" width="300" height="130" rx="14"/>
+  </g>
+  <text class="h" x="880" y="92">D1 database</text>
+  <text class="s" x="880" y="114">Cloudflare SQLite</text>
+  <text class="s" x="880" y="144">users · tasks · offers</text>
+  <text class="s" x="880" y="166">providers · area cache</text>
+
+  <g filter="url(#sh)">
+    <rect class="box" x="860" y="250" width="300" height="70" rx="14"/>
+    <rect class="box" x="860" y="340" width="300" height="70" rx="14"/>
+    <rect class="box" x="860" y="430" width="300" height="70" rx="14"/>
+  </g>
+  <text class="h2" x="880" y="280">OpenStreetMap Overpass</text><text class="s" x="880" y="302">4 mirrors, fastest answer wins</text>
+  <text class="h2" x="880" y="370">Nominatim</text><text class="s" x="880" y="392">free geocoding, cached for a day</text>
+  <text class="h2" x="880" y="460">Provider websites</text><text class="s" x="880" y="482">public phone and email, robots.txt aware</text>
+
+  <path class="flow" d="M312 280 H428" marker-end="url(#ar)"/>
+  <path class="flow" d="M428 340 H312" marker-end="url(#ar)" style="animation-direction:reverse"/>
+  <text class="l" x="322" y="266">HTTPS · JSON</text>
+  <path class="flow" d="M772 125 H858" marker-end="url(#ar)"/>
+  <text class="l" x="776" y="112">read / write</text>
+  <path class="ext" d="M772 322 C 810 322 820 290 858 288" marker-end="url(#ag)"/>
+  <path class="ext" d="M772 410 C 810 410 820 380 858 378" marker-end="url(#ag)"/>
+  <path class="ext" d="M772 350 C 800 400 820 470 858 468" marker-end="url(#ag)"/>
+  <text class="s" x="40" y="520" style="font-size:13px">Dashed lines animate in the browser. Green: our own services. Grey: free public sources.</text>
+</svg>
