@@ -19,7 +19,8 @@ export function Screen({
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         keyboardShouldPersistTaps="handled"
-        contentContainerClassName="gap-5 px-4 pb-24 pt-4">
+        // On web the tab bar is absolutely positioned at the top and takes no layout space.
+        contentContainerClassName="gap-5 px-4 pb-24 pt-4 web:pt-24">
         <View className="gap-1">
           <Text variant="h1">{title}</Text>
           {subtitle ? <Text variant="muted">{subtitle}</Text> : null}
