@@ -154,18 +154,20 @@ async function readText(res: Response): Promise<string> {
 const MAX_REDIRECTS = 4
 
 /**
- * GET that follows redirects by hand, so every destination is checked BEFORE it is requested. A site
- * we were told is public must not be able to bounce us to an internal address. Returns the final URL
- * and response, or null when a hop is not a public http(s) URL or there are too many hops.
+ * GET that follows redirects by hand, so every destination is checked BEFORE it is requested: it must
+ * be a public http(s) URL, and, when `permit` is given, robots.txt must allow it. Returns the final
+ * URL and response, null when a hop may not be fetched, or 'blocked' when `permit` refuses.
  */
 async function safeGet(
   start: URL,
   headers: Record<string, string>,
-  fetchImpl: typeof fetch
-): Promise<{ res: Response; url: URL } | null> {
+  fetchImpl: typeof fetch,
+  permit?: (url: URL) => Promise<boolean>
+): Promise<{ res: Response; url: URL } | null | 'blocked'> {
   let url = start;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     if (!isPublicHttpUrl(url.href)) return null;
+    if (permit && !(await permit(url))) return 'blocked';
     const res = await fetchImpl(url, { headers, redirect: 'manual', signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
     const location = res.status >= 300 && res.status < 400 ? res.headers.get('location') : null;
     if (!location) return { res, url };
@@ -179,29 +181,124 @@ async function safeGet(
   return null;
 }
 
-/** The page's HTML and the URL it was finally served from (after any redirects). */
-async function fetchHtml(url: URL, fetchImpl: typeof fetch): Promise<{ html: string; url: URL }> {
-  const got = await safeGet(url, { 'user-agent': USER_AGENT, accept: 'text/html,application/xhtml+xml' }, fetchImpl);
-  if (!got || !got.res.ok) return { html: '', url };
-  return { html: await readText(got.res), url: got.url };
+/** The page's HTML and the URL it was finally served from, or `blocked` when robots.txt forbids it. */
+async function fetchHtml(
+  url: URL,
+  fetchImpl: typeof fetch,
+  permit: (url: URL) => Promise<boolean>
+): Promise<{ html: string; url: URL; blocked: boolean }> {
+  const got = await safeGet(url, { 'user-agent': USER_AGENT, accept: 'text/html,application/xhtml+xml' }, fetchImpl, permit);
+  if (got === 'blocked') return { html: '', url, blocked: true };
+  if (!got || !got.res.ok) return { html: '', url, blocked: false };
+  return { html: await readText(got.res), url: got.url, blocked: false };
 }
 
-/** Whether the site's robots.txt asks all robots to stay out of the whole site. */
-export function robotsBlocksAll(robots: string): boolean {
-  let applies = false;
-  for (const line of robots.split(/\r?\n/)) {
-    const [field, ...rest] = line.split('#')[0].split(':');
-    const key = field.trim().toLowerCase();
-    const value = rest.join(':').trim();
-    if (key === 'user-agent') applies = value === '*';
-    else if (applies && key === 'disallow' && value === '/') return true;
+/** Our crawler's name as robots.txt files address it (the first part of the User-Agent). */
+const ROBOTS_AGENT = 'haandmatch';
+const MAX_ROBOTS_RULES = 1000;
+const MAX_PATTERN_LENGTH = 300;
+
+type RobotsRule = { allow: boolean; pattern: string };
+
+/** The rules in a robots.txt that apply to us: our own group if there is one, otherwise the "*" group. */
+function rulesFor(robots: string): RobotsRule[] {
+  const groups: { agents: string[]; rules: RobotsRule[] }[] = [];
+  let current: (typeof groups)[number] | null = null;
+  let lastWasAgent = false;
+  for (const raw of robots.split(/\r?\n/)) {
+    const line = raw.split('#')[0].trim();
+    const colon = line.indexOf(':');
+    if (colon < 0) continue;
+    const key = line.slice(0, colon).trim().toLowerCase();
+    const value = line.slice(colon + 1).trim();
+    if (key === 'user-agent') {
+      if (!current || !lastWasAgent) {
+        current = { agents: [], rules: [] };
+        groups.push(current);
+      }
+      current.agents.push(value.toLowerCase());
+      lastWasAgent = true;
+    } else if (key === 'allow' || key === 'disallow') {
+      lastWasAgent = false;
+      // An empty Disallow means "nothing is disallowed", so it adds no rule.
+      if (current && value !== '' && value.length <= MAX_PATTERN_LENGTH && current.rules.length < MAX_ROBOTS_RULES) {
+        current.rules.push({ allow: key === 'allow', pattern: value });
+      }
+    }
   }
-  return false;
+  const own = groups.filter((g) => g.agents.includes(ROBOTS_AGENT));
+  return (own.length > 0 ? own : groups.filter((g) => g.agents.includes('*'))).flatMap((g) => g.rules);
+}
+
+/**
+ * robots.txt pattern match: the pattern must match the start of the path, "*" matches any run of
+ * characters and a trailing "$" pins the end. A small iterative matcher (not a regex) so a hostile
+ * robots.txt cannot make it slow.
+ */
+function patternMatches(pattern: string, path: string): boolean {
+  const anchored = pattern.endsWith('$');
+  const glob = anchored ? pattern.slice(0, -1) : pattern + '*';
+  let g = 0;
+  let p = 0;
+  let starG = -1;
+  let starP = 0;
+  while (p < path.length) {
+    if (g < glob.length && glob[g] === '*') {
+      starG = g++;
+      starP = p;
+    } else if (g < glob.length && glob[g] === path[p]) {
+      g++;
+      p++;
+    } else if (starG >= 0) {
+      g = starG + 1;
+      p = ++starP;
+    } else {
+      return false;
+    }
+  }
+  while (g < glob.length && glob[g] === '*') g++;
+  return g === glob.length;
+}
+
+/**
+ * Whether robots.txt lets us fetch `path` (path plus query). The longest matching rule wins, and
+ * Allow wins a tie, as in the robots.txt standard. No matching rule means allowed.
+ */
+export function robotsAllows(robots: string, path: string): boolean {
+  let best: RobotsRule | null = null;
+  for (const rule of rulesFor(robots)) {
+    if (!patternMatches(rule.pattern, path)) continue;
+    if (!best || rule.pattern.length > best.pattern.length || (rule.pattern.length === best.pattern.length && rule.allow)) {
+      best = rule;
+    }
+  }
+  return best ? best.allow : true;
+}
+
+/** Whether robots.txt keeps us out of the whole site (its front page is off limits). */
+export function robotsBlocksAll(robots: string): boolean {
+  return !robotsAllows(robots, '/');
+}
+
+/**
+ * robots.txt text for a site: '' when it has none (a 4xx answer), or null when it cannot be relied on
+ * (network error or a 5xx answer), in which case the site is left alone.
+ */
+async function loadRobots(site: URL, fetchImpl: typeof fetch): Promise<string | null> {
+  try {
+    const got = await safeGet(new URL('/robots.txt', site), { 'user-agent': USER_AGENT }, fetchImpl);
+    if (!got || got === 'blocked' || got.res.status >= 500) return null;
+    if (!got.res.ok) return '';
+    return (await got.res.text()).slice(0, 500_000);
+  } catch {
+    return null;
+  }
 }
 
 /**
  * Looks at a provider's homepage, and one contact page if the homepage did not have both details.
- * Never throws: any problem just means "nothing found".
+ * Every page is checked against that site's robots.txt first, path rules included. Never throws:
+ * any problem just means "nothing found".
  */
 export async function fetchSiteContacts(website: string, fetchImpl: typeof fetch = fetch): Promise<SiteLookup> {
   const unreachable: SiteLookup = { phone: null, email: null, read: false };
@@ -209,14 +306,27 @@ export async function fetchSiteContacts(website: string, fetchImpl: typeof fetch
     if (!isPublicHttpUrl(website)) return unreachable;
     const start = new URL(website);
 
-    const robotsGet = await safeGet(new URL('/robots.txt', start), { 'user-agent': USER_AGENT }, fetchImpl).catch(
-      () => null
-    );
-    const robots = robotsGet?.res.ok ? await robotsGet.res.text().catch(() => '') : '';
-    // The site asks robots to stay out: nothing may be read, so do not keep contacts we took from it.
-    if (robotsBlocksAll(robots)) return { phone: null, email: null, read: true };
+    // One robots.txt per site (a redirect can lead to another host with its own rules).
+    const robotsBySite = new Map<string, string | null>();
+    let robotsUnavailable = false;
+    const permit = async (url: URL): Promise<boolean> => {
+      let robots = robotsBySite.get(url.origin);
+      if (robots === undefined) {
+        robots = await loadRobots(url, fetchImpl);
+        robotsBySite.set(url.origin, robots);
+      }
+      if (robots === null) {
+        robotsUnavailable = true;
+        return false;
+      }
+      return robotsAllows(robots, url.pathname + url.search);
+    };
 
-    const home = await fetchHtml(start, fetchImpl);
+    const home = await fetchHtml(start, fetchImpl, permit);
+    if (home.blocked) {
+      // Could not read the rules: conclude nothing. The site says no: nothing may be read or kept.
+      return robotsUnavailable ? unreachable : { phone: null, email: null, read: true };
+    }
     if (!home.html) return unreachable;
     let found = extractContacts(home.html);
     if (!found.phone || !found.email) {
@@ -224,7 +334,8 @@ export async function fetchSiteContacts(website: string, fetchImpl: typeof fetch
       const contactPage = findContactPage(home.html, home.url);
       if (contactPage) {
         try {
-          const more = extractContacts((await fetchHtml(contactPage, fetchImpl)).html);
+          // A contact page robots.txt forbids is simply skipped; the homepage's details stay.
+          const more = extractContacts((await fetchHtml(contactPage, fetchImpl, permit)).html);
           found = { phone: found.phone ?? more.phone, email: found.email ?? more.email };
         } catch {
           // The optional contact page failed: keep what the homepage gave us.
