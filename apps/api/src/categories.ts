@@ -63,7 +63,13 @@ export function overpassStatements(
     for (const [key, values] of Object.entries(rule.tags ?? {})) {
       statements.push(`nwr["${key}"~"^(${values.join('|')})$"]${around};`);
     }
-    if (rule.name) statements.push(`nwr["name"~"${rule.name}",i]${around};`);
+    if (rule.name) {
+      // A bare name regex scans every named object in the area, which is very slow in cities.
+      // Requiring a business-type key lets Overpass start from a much smaller indexed set.
+      for (const key of ['office', 'craft', 'shop']) {
+        statements.push(`nwr["${key}"]["name"~"${rule.name}",i]${around};`)
+      }
+    };
   }
   return statements;
 }

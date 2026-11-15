@@ -7,11 +7,15 @@ const ENDPOINTS = [
   'https://overpass.kumi.systems/api/interpreter',
 ]
 
-/** We keep at most this many providers per fetched area: the nearest to the area centre. */
-export const MAX_PROVIDERS_PER_FETCH = 100
+/**
+ * We store at most this many providers per fetched area: the nearest to the area centre.
+ * Searches return at most 100 (see MAX_RESULTS in index.ts); storing more than that keeps results
+ * correct for users who are not exactly at the cell centre.
+ */
+export const MAX_PROVIDERS_PER_FETCH = 300
 
-/** Fetch a few more than we keep so the nearest-100 cut is meaningful. */
-const FETCH_LIMIT = 300
+/** Remarks Overpass puts in an HTTP 200 body when a query died part-way through. */
+const RUNTIME_ERROR = /runtime error|timed out|out of memory|too many requests/i
 
 export type SourceProvider = {
   id: string
@@ -66,8 +70,9 @@ function toProvider(el: OverpassElement): SourceProvider | null {
 async function runQuery(query: string): Promise<OverpassElement[]> {
   let lastError: unknown
   for (const endpoint of ENDPOINTS) {
-    // Two attempts per endpoint; the public servers often answer 429/502 when busy.
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // One attempt per endpoint (then fall back to the mirror): a cold fetch already takes a while and
+    // the app gives up after 60s, so long retry loops would only outlast the caller.
+    for (let attempt = 0; attempt < 1; attempt++) {
       try {
         const res = await fetch(endpoint, {
           method: 'POST',
@@ -75,10 +80,17 @@ async function runQuery(query: string): Promise<OverpassElement[]> {
           body: new URLSearchParams({ data: query }),
         })
         if (res.ok) {
-          const json = (await res.json()) as { elements?: OverpassElement[] }
-          return json.elements ?? []
+          const json = (await res.json()) as { elements?: OverpassElement[]; remark?: string }
+          // A query that times out or runs out of memory after headers are sent still answers 200,
+          // with empty/partial elements and the error in `remark`. Never treat that as a result.
+          if (json.remark && RUNTIME_ERROR.test(json.remark)) {
+            lastError = new Error(`Overpass ${endpoint} query failed: ${json.remark}`)
+          } else {
+            return json.elements ?? []
+          }
+        } else {
+          lastError = new Error(`Overpass ${endpoint} responded ${res.status}`)
         }
-        lastError = new Error(`Overpass ${endpoint} responded ${res.status}`)
       } catch (err) {
         lastError = err
       }
@@ -99,7 +111,9 @@ export async function fetchProviders(
   radiusKm: number
 ): Promise<SourceProvider[]> {
   const statements = overpassStatements(categories, Math.round(radiusKm * 1000), lat, lng)
-  const query = `[out:json][timeout:25];(${statements.join('')});out center tags ${FETCH_LIMIT};`
+  // No `out N` limit: Overpass applies it in object-id order, before any distance sorting, so it
+  // could drop nearby providers. We fetch every candidate and keep the nearest ones ourselves.
+  const query = `[out:json][timeout:30];(${statements.join('')});out center tags;`
   const elements = await runQuery(query)
 
   const seen = new Set<string>()

@@ -3,7 +3,7 @@ import { cors } from 'hono/cors'
 import { z } from 'zod'
 
 import { CATEGORY_IDS, isCategoryId, type CategoryId } from './categories'
-import { getProviderById, isAreaFresh, saveArea, searchNearby } from './db'
+import { EXPIRE_MS, getProviderById, isAreaFresh, saveArea, searchNearby } from './db'
 import { snapToCell } from './geo'
 import { fetchProviders } from './sources/overpass'
 
@@ -57,7 +57,16 @@ app.get('/providers', async (c) => {
     }
   }
 
-  const providers = await searchNearby(c.env.DB, { lat, lng, radiusKm: radius, category, q: q || undefined, limit })
+  // Normally hide providers that refreshes stopped confirming; if upstream is down keep serving what we have.
+  const providers = await searchNearby(c.env.DB, {
+    lat,
+    lng,
+    radiusKm: radius,
+    category,
+    q: q || undefined,
+    limit,
+    confirmedSince: upstreamFailed ? undefined : now - EXPIRE_MS,
+  })
   if (upstreamFailed && providers.length === 0) {
     return c.json({ error: 'Provider data is temporarily unavailable. Please try again shortly.' }, 503)
   }

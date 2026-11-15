@@ -27,6 +27,13 @@ type RatingRow = { provider_id: string; source: string; rating: number; review_c
 /** Re-fetch an area after a week; provider data changes slowly. */
 export const FRESH_MS = 7 * 24 * 60 * 60 * 1000
 
+/**
+ * A provider that no successful refresh has confirmed for this long is treated as gone
+ * (deleted from OSM or no longer tagged as a service). Twice the refresh interval, so one
+ * missed refresh never hides a real business.
+ */
+export const EXPIRE_MS = 2 * FRESH_MS
+
 export async function isAreaFresh(db: D1Database, cell: string, category: string, now: number) {
   const row = await db
     .prepare('SELECT fetched_at FROM area_fetches WHERE cell = ? AND category = ?')
@@ -100,11 +107,24 @@ function toProvider(row: ProviderRow, ratings: Rating[], distanceKm?: number): P
 /** Providers within `radiusKm` of a point, nearest first, at most `limit`. */
 export async function searchNearby(
   db: D1Database,
-  opts: { lat: number; lng: number; radiusKm: number; category?: string; q?: string; limit: number }
+  opts: {
+    lat: number
+    lng: number
+    radiusKm: number
+    category?: string
+    q?: string
+    limit: number
+    /** Hide providers not confirmed by a refresh since this unix-ms time. Omit to serve stale data (upstream down). */
+    confirmedSince?: number
+  }
 ): Promise<Provider[]> {
   const box = boundingBox(opts.lat, opts.lng, opts.radiusKm)
   const where = ['lat BETWEEN ? AND ?', 'lng BETWEEN ? AND ?']
   const params: (string | number)[] = [box.minLat, box.maxLat, box.minLng, box.maxLng]
+  if (opts.confirmedSince !== undefined) {
+    where.push('fetched_at >= ?')
+    params.push(opts.confirmedSince)
+  }
   if (opts.category) {
     where.push('categories LIKE ?')
     params.push(`%"${opts.category}"%`)
