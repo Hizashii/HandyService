@@ -3,9 +3,19 @@ import { Hono, type Context } from 'hono'
 import { z } from 'zod'
 
 import { CATEGORY_IDS, isCategoryId, type CategoryId } from '../categories'
-import { EXPIRE_MS, getProviderById, isAreaFresh, saveArea, searchNearby, upsertProviders } from './db'
+import {
+  EXPIRE_MS,
+  contactCandidates,
+  getProviderById,
+  isAreaFresh,
+  saveArea,
+  saveSiteContacts,
+  searchNearby,
+  upsertProviders,
+} from './db'
 import { snapToCell } from '../geo'
 import { fetchProviders } from '../sources/overpass'
+import { fetchSiteContacts } from '../sources/website-contacts'
 import type { AppEnv } from '../types'
 
 /** Users only ever see providers this close (km). Keeps results local: Esbjerg never gets Copenhagen. */
@@ -46,6 +56,30 @@ const searchQuery = z.object({
 const inFlight = new Map<string, Promise<void>>()
 /** When the last refresh of an area failed, so a failing upstream is not hammered by every poll. */
 const failedAt = new Map<string, number>()
+
+/**
+ * Websites being read for contact details right now, keyed by provider id. Keeps repeated polls from
+ * reading the same site twice, and tells the app to keep polling until the details have landed.
+ */
+const enriching = new Map<string, Promise<void>>()
+/** Sites read per search. Each costs up to three outbound requests, and Workers cap those per invocation. */
+const MAX_SITES_PER_SEARCH = 12
+const SITE_CONCURRENCY = 4
+
+/** Reads the websites of providers missing a phone or email, a few at a time. Never throws. */
+async function enrichContacts(db: D1Database, sites: { id: string; website: string }[]) {
+  const queue = [...sites]
+  const worker = async () => {
+    for (let site = queue.shift(); site; site = queue.shift()) {
+      try {
+        await saveSiteContacts(db, site.id, await fetchSiteContacts(site.website), Date.now())
+      } catch (err) {
+        console.error('Contact enrichment failed', err)
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(SITE_CONCURRENCY, queue.length) }, worker))
+}
 
 /** A single category runs every rule for it; the broad all-categories search uses only the fast tag rules. */
 const isExhaustive = (categoryId: CategoryId | undefined) => categoryId !== undefined
@@ -189,7 +223,20 @@ providerRoutes.get('/', async (c) => {
   if (upstreamFailed && providers.length === 0) {
     return c.json({ error: 'Provider data is temporarily unavailable. Please try again shortly.' }, 503)
   }
-  return c.json({ providers, radiusKm: radius, stale: upstreamFailed, refreshing })
+
+  // Fill in missing phone numbers and emails from the nearest providers' own websites, in the
+  // background. The app keeps polling while this runs, so the details appear without a new search.
+  const sites = (await contactCandidates(c.env.DB, providers.map((p) => p.id), now, MAX_SITES_PER_SEARCH)).filter(
+    (s) => !enriching.has(s.id)
+  )
+  if (sites.length > 0) {
+    const run = enrichContacts(c.env.DB, sites).finally(() => sites.forEach((s) => enriching.delete(s.id)))
+    sites.forEach((s) => enriching.set(s.id, run))
+    runInBackground(c, run)
+  }
+  const enrichingNow = providers.some((p) => enriching.has(p.id))
+
+  return c.json({ providers, radiusKm: radius, stale: upstreamFailed, refreshing: refreshing || enrichingNow })
 })
 
 providerRoutes.get('/:id', async (c) => {

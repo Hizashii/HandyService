@@ -23,6 +23,8 @@ type ProviderRow = {
   phone: string | null
   email: string | null
   website: string | null
+  site_phone: string | null
+  site_email: string | null
 }
 
 type RatingRow = { provider_id: string; source: string; rating: number; review_count: number; url: string | null }
@@ -158,8 +160,9 @@ function toProvider(row: ProviderRow, ratings: Rating[], distanceKm?: number): P
     lng: row.lng,
     city: row.city,
     address: row.address,
-    phone: row.phone,
-    email: row.email,
+    // OpenStreetMap values win; details read from the provider's own website only fill gaps.
+    phone: row.phone ?? row.site_phone,
+    email: row.email ?? row.site_email,
     website: row.website,
     ratings,
     distanceKm,
@@ -225,4 +228,54 @@ export async function getProviderById(
   const ratings = await attachRatings(db, [row])
   const km = from ? Math.round(haversineKm(from.lat, from.lng, row.lat, row.lng) * 10) / 10 : undefined
   return toProvider(row, ratings.get(row.id) ?? [], km)
+}
+
+/** Look at a provider's website again after this long (found something or not). */
+export const CONTACT_RECHECK_MS = 30 * 24 * 60 * 60 * 1000
+
+/**
+ * Providers among `ids` that have a website, are missing a phone or email, and have not had their
+ * website checked recently. At most `limit`, in the order given (nearest first).
+ */
+export async function contactCandidates(
+  db: D1Database,
+  ids: string[],
+  now: number,
+  limit: number
+): Promise<{ id: string; website: string }[]> {
+  const found = new Map<string, string>()
+  for (let i = 0; i < ids.length; i += 50) {
+    const chunk = ids.slice(i, i + 50)
+    const { results } = await db
+      .prepare(
+        `SELECT id, website FROM providers
+         WHERE id IN (${chunk.map(() => '?').join(',')})
+           AND website IS NOT NULL
+           AND (contact_checked_at IS NULL OR contact_checked_at < ?)
+           AND (COALESCE(phone, site_phone) IS NULL OR COALESCE(email, site_email) IS NULL)`
+      )
+      .bind(...chunk, now - CONTACT_RECHECK_MS)
+      .all<{ id: string; website: string }>()
+    for (const r of results) found.set(r.id, r.website)
+  }
+  return ids
+    .filter((id) => found.has(id))
+    .slice(0, limit)
+    .map((id) => ({ id, website: found.get(id)! }))
+}
+
+/** Records what was found on a provider's website and when it was checked. Never touches OSM columns. */
+export async function saveSiteContacts(
+  db: D1Database,
+  id: string,
+  found: { phone: string | null; email: string | null },
+  now: number
+) {
+  await db
+    .prepare(
+      `UPDATE providers SET site_phone = COALESCE(?, site_phone), site_email = COALESCE(?, site_email),
+         contact_checked_at = ? WHERE id = ?`
+    )
+    .bind(found.phone, found.email, now, id)
+    .run()
 }
