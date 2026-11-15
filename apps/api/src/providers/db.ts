@@ -21,6 +21,7 @@ type ProviderRow = {
   city: string | null
   address: string | null
   phone: string | null
+  email: string | null
   website: string | null
 }
 
@@ -79,6 +80,31 @@ async function findVanished(db: D1Database, scope: FetchScope, returned: Set<str
     .map((row) => row.id)
 }
 
+function upsertStatements(db: D1Database, providers: SourceProvider[], now: number) {
+  const upsert = db.prepare(
+    `INSERT INTO providers (id, source, name, categories, lat, lng, city, address, phone, email, website, fetched_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       name = excluded.name, categories = excluded.categories, lat = excluded.lat, lng = excluded.lng,
+       city = excluded.city, address = excluded.address, phone = excluded.phone, email = excluded.email,
+       website = excluded.website, fetched_at = excluded.fetched_at`
+  )
+  return providers.map((p) =>
+    upsert.bind(p.id, p.source, p.name, JSON.stringify(p.categories), p.lat, p.lng, p.city, p.address, p.phone, p.email, p.website, now)
+  )
+}
+
+/**
+ * Stores providers without marking any area as fetched and without removing anything. Used for the
+ * quick first look around the user, so those results can be shown while the full area is still loading.
+ */
+export async function upsertProviders(db: D1Database, providers: SourceProvider[], now: number) {
+  const statements = upsertStatements(db, providers, now)
+  for (let i = 0; i < statements.length; i += BATCH_SIZE) {
+    await db.batch(statements.slice(i, i + BATCH_SIZE))
+  }
+}
+
 export async function saveArea(
   db: D1Database,
   cell: string,
@@ -88,17 +114,7 @@ export async function saveArea(
   scope: FetchScope
 ) {
   const vanished = await findVanished(db, scope, new Set(providers.map((p) => p.id)))
-  const upsert = db.prepare(
-    `INSERT INTO providers (id, source, name, categories, lat, lng, city, address, phone, website, fetched_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(id) DO UPDATE SET
-       name = excluded.name, categories = excluded.categories, lat = excluded.lat, lng = excluded.lng,
-       city = excluded.city, address = excluded.address, phone = excluded.phone,
-       website = excluded.website, fetched_at = excluded.fetched_at`
-  )
-  const statements = providers.map((p) =>
-    upsert.bind(p.id, p.source, p.name, JSON.stringify(p.categories), p.lat, p.lng, p.city, p.address, p.phone, p.website, now)
-  )
+  const statements = upsertStatements(db, providers, now)
   for (const id of vanished) {
     statements.push(db.prepare('DELETE FROM providers WHERE id = ?').bind(id))
   }
@@ -143,6 +159,7 @@ function toProvider(row: ProviderRow, ratings: Rating[], distanceKm?: number): P
     city: row.city,
     address: row.address,
     phone: row.phone,
+    email: row.email,
     website: row.website,
     ratings,
     distanceKm,

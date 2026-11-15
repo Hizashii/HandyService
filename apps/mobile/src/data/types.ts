@@ -28,6 +28,7 @@ export type Provider = {
   city: string | null;
   address: string | null;
   phone: string | null;
+  email: string | null;
   website: string | null;
   ratings: SourceRating[];
   /** Straight-line distance from the user's location, when known. */

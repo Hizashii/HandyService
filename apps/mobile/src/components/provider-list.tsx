@@ -10,6 +10,7 @@ export function ProviderList({
   loading,
   error,
   stale = false,
+  refreshing = false,
   hasLocation,
 }: {
   providers: Provider[];
@@ -17,16 +18,19 @@ export function ProviderList({
   error: string | null;
   /** The server answered from saved data because it could not refresh this area. */
   stale?: boolean;
+  /** The server is still searching the wider area; more providers may appear. */
+  refreshing?: boolean;
   hasLocation: boolean;
 }) {
   if (!hasLocation) return null;
 
-  if (loading) {
+  // Nothing to show yet: either the first answer is on its way, or the server is still searching.
+  if (loading || (refreshing && providers.length === 0 && !error)) {
     return (
       <View className="items-center gap-2 py-10">
         <ActivityIndicator />
         <Text variant="muted" className="text-center">
-          Finding providers near you. The first search in a new area can take a minute or two.
+          Finding providers near you...
         </Text>
       </View>
     );
@@ -61,6 +65,12 @@ export function ProviderList({
       {providers.map((p) => (
         <ProviderCard key={p.id} provider={p} />
       ))}
+      {refreshing ? (
+        <View className="flex-row items-center justify-center gap-2 py-3">
+          <ActivityIndicator size="small" />
+          <Text variant="muted">Still searching for more nearby...</Text>
+        </View>
+      ) : null}
     </View>
   );
 }

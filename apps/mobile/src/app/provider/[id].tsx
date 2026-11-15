@@ -1,8 +1,9 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { Globe, Heart, MapPin, Phone } from 'lucide-react-native';
+import { Heart, MapPin } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, ScrollView, View } from 'react-native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
 
+import { ContactActions } from '@/components/contact-actions';
 import { RatingBadge } from '@/components/rating-stars';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -95,26 +96,15 @@ export default function ProviderScreen() {
         )}
 
         <View className="gap-3">
-          {provider.phone ? (
-            <Button onPress={() => Linking.openURL(`tel:${provider.phone}`)}>
-              <Icon as={Phone} size={16} className="text-primary-foreground" />
-              <Text className="font-medium text-primary-foreground">Call</Text>
-            </Button>
-          ) : null}
-          {provider.website ? (
-            <Button variant="outline" onPress={() => Linking.openURL(provider.website!)}>
-              <Icon as={Globe} size={16} />
-              <Text className="font-medium">Visit website</Text>
-            </Button>
-          ) : null}
-          <Button variant="secondary" onPress={() => toggle(provider)}>
+          <ContactActions provider={provider} variant="full" />
+          <Button variant="outline" onPress={() => toggle(provider)}>
             <Icon
               as={Heart}
               size={16}
-              className={saved ? 'text-destructive' : 'text-secondary-foreground'}
+              className={saved ? 'text-destructive' : 'text-foreground'}
               fill={saved ? 'currentColor' : 'none'}
             />
-            <Text className="font-medium text-secondary-foreground">
+            <Text className="font-medium">
               {saved ? 'Saved' : 'Save for later'}
             </Text>
           </Button>

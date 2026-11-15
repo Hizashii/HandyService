@@ -18,8 +18,8 @@ function resolveBaseUrl() {
 
 export const API_URL = resolveBaseUrl();
 
-/** A cold area fetch takes ~45s on the free upstream (and can retry on a mirror), so allow plenty of time. */
-const TIMEOUT_MS = 120_000;
+/** The server answers within ~20s even for a new area (the rest loads in the background), so this is only a safety net. */
+const TIMEOUT_MS = 60_000;
 
 export class ApiError extends Error {}
 
@@ -50,7 +50,7 @@ export function searchProviders(
   opts: { category?: string; q?: string; radius?: number },
   signal?: AbortSignal
 ) {
-  return get<{ providers: Provider[]; radiusKm: number; stale: boolean }>(
+  return get<{ providers: Provider[]; radiusKm: number; stale: boolean; refreshing: boolean }>(
     '/api/providers',
     { lat: at.lat, lng: at.lng, category: opts.category, q: opts.q, radius: opts.radius },
     signal

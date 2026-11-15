@@ -1,9 +1,9 @@
 import type { D1Database } from '@cloudflare/workers-types'
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { z } from 'zod'
 
 import { CATEGORY_IDS, isCategoryId, type CategoryId } from '../categories'
-import { EXPIRE_MS, getProviderById, isAreaFresh, saveArea, searchNearby } from './db'
+import { EXPIRE_MS, getProviderById, isAreaFresh, saveArea, searchNearby, upsertProviders } from './db'
 import { snapToCell } from '../geo'
 import { fetchProviders } from '../sources/overpass'
 import type { AppEnv } from '../types'
@@ -14,6 +14,11 @@ const DEFAULT_RADIUS_KM = 25
 const MAX_RESULTS = 100
 /** Upstream area fetched around a cell centre. Must cover max radius + the distance a user can be from their cell centre. */
 const FETCH_RADIUS_KM = 35
+/** First, small look around the user's exact position so results can be shown while the full area loads. */
+const QUICK_RADIUS_KM = 8
+const QUICK_TIMEOUT_MS = 20_000
+/** After a failed refresh, serve saved data for this long before asking the upstream again. */
+const RETRY_AFTER_FAILURE_MS = 60_000
 
 const coord = (min: number, max: number) => z.coerce.number().min(min).max(max)
 
@@ -32,23 +37,26 @@ const searchQuery = z.object({
  * identical requests share one fetch instead of each starting their own.
  */
 const inFlight = new Map<string, Promise<void>>()
+/** When the last refresh of an area failed, so a failing upstream is not hammered by every poll. */
+const failedAt = new Map<string, number>()
+
+/** A single category runs every rule for it; the broad all-categories search uses only the fast tag rules. */
+const isExhaustive = (categoryId: CategoryId | undefined) => categoryId !== undefined
 
 function refreshArea(
   db: D1Database,
   cell: { key: string; lat: number; lng: number },
+  flightKey: string,
   cacheKey: string,
   categoryId: CategoryId | undefined,
   now: number
 ): Promise<void> {
-  const flightKey = `${cell.key}|${cacheKey}`
   const existing = inFlight.get(flightKey)
   if (existing) return existing
 
   const run = (async () => {
     const fetchedCategories = categoryId ? [categoryId] : CATEGORY_IDS
-    // A single category runs every rule for it. The broad all-categories search (the Home screen)
-    // uses only the fast tag rules, which keeps it to one query.
-    const exhaustive = categoryId !== undefined
+    const exhaustive = isExhaustive(categoryId)
     const { providers, complete } = await fetchProviders(
       fetchedCategories,
       cell.lat,
@@ -64,10 +72,47 @@ function refreshArea(
       // Without the name rules "not returned" does not mean "gone", so only exhaustive fetches may delete.
       complete: complete && exhaustive,
     })
-  })().finally(() => inFlight.delete(flightKey))
+  })()
+    .then(
+      () => {
+        failedAt.delete(flightKey)
+      },
+      (err) => {
+        failedAt.set(flightKey, Date.now())
+        throw err
+      }
+    )
+    .finally(() => inFlight.delete(flightKey))
 
   inFlight.set(flightKey, run)
   return run
+}
+
+/** A small, fast fetch around the user so the first results do not wait for the whole area. */
+async function quickLook(
+  db: D1Database,
+  at: { lat: number; lng: number },
+  categoryId: CategoryId | undefined,
+  now: number
+): Promise<void> {
+  const { providers } = await fetchProviders(
+    categoryId ? [categoryId] : CATEGORY_IDS,
+    at.lat,
+    at.lng,
+    QUICK_RADIUS_KM,
+    isExhaustive(categoryId),
+    { timeoutMs: QUICK_TIMEOUT_MS }
+  )
+  await upsertProviders(db, providers, now)
+}
+
+/** Keep a promise running after the response is sent (Workers cut off work that is not registered). */
+function runInBackground(c: Context<AppEnv>, task: Promise<unknown>) {
+  try {
+    c.executionCtx.waitUntil(task)
+  } catch {
+    // No execution context (e.g. in tests): the promise still runs to completion on its own.
+  }
 }
 
 /** Service providers near a location: GET /api/providers and GET /api/providers/:id */
@@ -82,18 +127,33 @@ providerRoutes.get('/', async (c) => {
   }
   const categoryId = category as CategoryId | undefined
 
-  // Make sure the area around the user has been fetched recently; otherwise pull it from OSM.
   const cell = snapToCell(lat, lng)
   const cacheKey = categoryId ?? 'all'
+  const flightKey = `${cell.key}|${cacheKey}`
   const now = Date.now()
+
+  // `refreshing`: the full area is still being fetched in the background; the app asks again shortly.
+  let refreshing = false
   let upstreamFailed = false
   if (!(await isAreaFresh(c.env.DB, cell.key, cacheKey, now))) {
-    try {
-      await refreshArea(c.env.DB, cell, cacheKey, categoryId, now)
-    } catch (err) {
-      // Serve whatever we already have (possibly stale) rather than failing the search.
-      console.error('Upstream fetch failed', err)
-      upstreamFailed = true
+    const lastFailure = failedAt.get(flightKey)
+    if (lastFailure !== undefined && now - lastFailure < RETRY_AFTER_FAILURE_MS) {
+      upstreamFailed = true // serve what we have instead of asking a struggling upstream again
+    } else {
+      const alreadyRunning = inFlight.has(flightKey)
+      const full = refreshArea(c.env.DB, cell, flightKey, cacheKey, categoryId, now).catch((err) => {
+        console.error('Upstream fetch failed', err)
+      })
+      runInBackground(c, full)
+      if (!alreadyRunning) {
+        // Answer as soon as either the quick look around the user or the whole area is done.
+        const quick = quickLook(c.env.DB, { lat, lng }, categoryId, now).catch((err) => {
+          console.error('Quick fetch failed', err)
+        })
+        await Promise.race([quick, full])
+      }
+      refreshing = inFlight.has(flightKey)
+      upstreamFailed = !refreshing && failedAt.has(flightKey)
     }
   }
 
@@ -110,7 +170,7 @@ providerRoutes.get('/', async (c) => {
   if (upstreamFailed && providers.length === 0) {
     return c.json({ error: 'Provider data is temporarily unavailable. Please try again shortly.' }, 503)
   }
-  return c.json({ providers, radiusKm: radius, stale: upstreamFailed })
+  return c.json({ providers, radiusKm: radius, stale: upstreamFailed, refreshing })
 })
 
 providerRoutes.get('/:id', async (c) => {
